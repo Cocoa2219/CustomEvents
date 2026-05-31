@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using ADOFAI;
 using ADOFAI.LevelEditor.Controls;
 using HarmonyLib;
-using Newtonsoft.Json.Linq;
 using TMPro;
 using UnityEngine;
 using PropertyInfo = ADOFAI.PropertyInfo;
@@ -89,7 +89,7 @@ public static class LocalizationRegistry
         return NormalizeLocaleTag(culture.Name);
     }
 
-    private static CultureInfo CultureFromSystemLanguage(SystemLanguage lang)
+    internal static CultureInfo CultureFromSystemLanguage(SystemLanguage lang)
     {
         if (lang == SystemLanguage.Unknown) return CultureInfo.InvariantCulture;
         var tag = _languageToTag.TryGetValue(lang, out var t) ? t : string.Empty;
@@ -160,18 +160,27 @@ public static class LocalizationRegistry
         if (!_localizationData.ContainsKey(assembly))
             _localizationData[assembly] = new Dictionary<string, Dictionary<string, string>>();
 
-        JObject root;
+        if (string.IsNullOrWhiteSpace(json)) return;
+
         try
         {
-            root = string.IsNullOrWhiteSpace(json) ? new JObject() : JObject.Parse(json);
+            using var doc = JsonDocument.Parse(json);
+            RegisterAllInOneObject(assembly, doc.RootElement, string.Empty);
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
             Debug.LogError($"Failed to parse localization JSON: {ex.Message}");
-            return;
         }
 
-        RegisterAllInOneObject(assembly, root, string.Empty);
+        if (CustomEventRegistry.DefaultValueToAdd.TryGetValue(assembly, out var defaultValues))
+            foreach (var kvp in defaultValues.ToList())
+            {
+                if (TryGetLocalizedString(assembly, kvp.Value, CultureFromSystemLanguage(Persistence.language), out var localized))
+                {
+                    kvp.Key.value_default = localized;
+                    CustomEventRegistry.DefaultValueToAdd[assembly].Remove(kvp.Key);
+                }
+            }
     }
 
     public static void RegisterPerLanguageJson(string locale, string json)
@@ -181,14 +190,15 @@ public static class LocalizationRegistry
         if (string.IsNullOrEmpty(tag)) return;
 
         var flattened = FlattenJson(json);
+        if (flattened == null) return;
 
         if (!_localizationData.ContainsKey(assembly))
             _localizationData[assembly] = new Dictionary<string, Dictionary<string, string>>();
 
-        foreach (var prop in flattened.Properties())
+        foreach (var kv in flattened)
         {
-            var key = prop.Name;
-            var value = prop.Value.Type == JTokenType.Null ? null : prop.Value.ToString();
+            var key = kv.Key;
+            var value = kv.Value;
             if (value == null) continue;
 
             if (!_localizationData[assembly].ContainsKey(key))
@@ -199,59 +209,67 @@ public static class LocalizationRegistry
                 _generalLocalizationData[key] = new Dictionary<string, string>();
             _generalLocalizationData[key][tag] = value;
         }
+        
+        if (CustomEventRegistry.DefaultValueToAdd.TryGetValue(assembly, out var defaultValues))
+            foreach (var kvp in defaultValues.ToList())
+            {
+                if (TryGetLocalizedString(assembly, kvp.Value, CultureFromSystemLanguage(Persistence.language), out var localized))
+                {
+                    kvp.Key.value_default = localized;
+                    CustomEventRegistry.DefaultValueToAdd[assembly].Remove(kvp.Key);
+                }
+            }
     }
 
-    private static void RegisterAllInOneObject(Assembly assembly, JToken token, string prefix)
+    private static void RegisterAllInOneObject(Assembly assembly, JsonElement token, string prefix)
     {
-        if (token == null) return;
+        if (token.ValueKind != JsonValueKind.Object) return;
 
-        if (token.Type == JTokenType.Object)
+        if (IsLocaleMap(token))
         {
-            var objectToken = (JObject)token;
-            if (IsLocaleMap(objectToken))
-            {
-                RegisterLocalizedStringMap(assembly, prefix, objectToken);
-                return;
-            }
+            RegisterLocalizedStringMap(assembly, prefix, token);
+            return;
+        }
 
-            foreach (var property in objectToken.Properties())
-            {
-                var nextPrefix = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";
-                RegisterAllInOneObject(assembly, property.Value, nextPrefix);
-            }
+        foreach (var property in token.EnumerateObject())
+        {
+            var nextPrefix = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";
+            RegisterAllInOneObject(assembly, property.Value, nextPrefix);
         }
     }
 
-    private static bool IsLocaleMap(JObject obj)
+    private static bool IsLocaleMap(JsonElement obj)
     {
-        if (obj.Count == 0) return false;
+        if (obj.ValueKind != JsonValueKind.Object) return false;
 
-        foreach (var property in obj.Properties())
+        var hasAny = false;
+        foreach (var property in obj.EnumerateObject())
         {
-            if (property.Value.Type != JTokenType.String &&
-                property.Value.Type != JTokenType.Null &&
-                property.Value.Type != JTokenType.Undefined)
+            hasAny = true;
+            if (property.Value.ValueKind != JsonValueKind.String &&
+                property.Value.ValueKind != JsonValueKind.Null)
                 return false;
 
             if (string.IsNullOrEmpty(NormalizeLocaleTag(property.Name))) return false;
         }
 
-        return true;
+        return hasAny;
     }
 
-    private static void RegisterLocalizedStringMap(Assembly assembly, string key, JObject localeMap)
+    private static void RegisterLocalizedStringMap(Assembly assembly, string key, JsonElement localeMap)
     {
         if (string.IsNullOrEmpty(key)) return;
 
         var normalized = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var property in localeMap.Properties())
+        foreach (var property in localeMap.EnumerateObject())
         {
             var tag = NormalizeLocaleTag(property.Name);
             if (string.IsNullOrEmpty(tag)) continue;
 
-            if (property.Value.Type == JTokenType.Null || property.Value.Type == JTokenType.Undefined) continue;
+            if (property.Value.ValueKind == JsonValueKind.Null) continue;
 
-            normalized[tag] = property.Value.ToString();
+            if (!TryGetScalarString(property.Value, out var value)) continue;
+            normalized[tag] = value;
         }
 
         if (normalized.Count == 0) return;
@@ -264,25 +282,31 @@ public static class LocalizationRegistry
         foreach (var kv in normalized) _generalLocalizationData[key][kv.Key] = kv.Value;
     }
 
-    private static JObject FlattenJson(string jsonString)
+    private static Dictionary<string, string> FlattenJson(string jsonString)
     {
         if (string.IsNullOrWhiteSpace(jsonString))
-            return new JObject();
+            return new Dictionary<string, string>();
 
-        var jsonObject = JObject.Parse(jsonString);
-        var flattenedResult = new JObject();
-
-        FlattenToken(jsonObject, flattenedResult, "");
-
-        return flattenedResult;
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonString);
+            var flattenedResult = new Dictionary<string, string>();
+            FlattenToken(doc.RootElement, flattenedResult, "");
+            return flattenedResult;
+        }
+        catch (JsonException ex)
+        {
+            Debug.LogError($"Failed to parse localization JSON: {ex.Message}");
+            return null;
+        }
     }
 
-    private static void FlattenToken(JToken token, JObject result, string prefix)
+    private static void FlattenToken(JsonElement token, Dictionary<string, string> result, string prefix)
     {
-        switch (token.Type)
+        switch (token.ValueKind)
         {
-            case JTokenType.Object:
-                foreach (var property in token.Children<JProperty>())
+            case JsonValueKind.Object:
+                foreach (var property in token.EnumerateObject())
                 {
                     var newPrefix = string.IsNullOrEmpty(prefix)
                         ? property.Name
@@ -293,9 +317,9 @@ public static class LocalizationRegistry
 
                 break;
 
-            case JTokenType.Array:
+            case JsonValueKind.Array:
                 var index = 0;
-                foreach (var value in token.Children())
+                foreach (var value in token.EnumerateArray())
                 {
                     FlattenToken(value, result, $"{prefix}.{index}");
                     index++;
@@ -304,8 +328,31 @@ public static class LocalizationRegistry
                 break;
 
             default:
-                result[prefix] = token;
+                if (TryGetScalarString(token, out var scalar))
+                    result[prefix] = scalar;
                 break;
+        }
+    }
+
+    private static bool TryGetScalarString(JsonElement element, out string value)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.String:
+                value = element.GetString() ?? string.Empty;
+                return true;
+            case JsonValueKind.Number:
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                value = element.GetRawText();
+                return value != null;
+            case JsonValueKind.Null:
+            case JsonValueKind.Undefined:
+                value = null;
+                return false;
+            default:
+                value = element.GetRawText();
+                return value != null;
         }
     }
 }
@@ -543,12 +590,12 @@ public class PropertyControlNoteLocalizationPatch
                     eventData.PropertiesByName.TryGetValue(__instance.propertyInfo.name, out var propData) &&
                     propData is NoteProperty noteProperty)
                 {
-                    localizedString = LocalizationRegistry.GetLocalizedString(assembly, !string.IsNullOrEmpty(noteProperty.NoteKey) ? noteProperty.NoteKey : $"{customEvent.Name}.{__instance.propertyInfo.name}", Persistence.language);
+                    localizedString = LocalizationRegistry.GetLocalizedString(assembly, !string.IsNullOrEmpty(noteProperty.NoteKey) ? noteProperty.NoteKey : $"{customEvent.Name}.{__instance.propertyInfo.name}.note", Persistence.language);
                 }
                 else
                 {
                     localizedString = LocalizationRegistry.GetLocalizedString(assembly,
-                        $"{customEvent.Name}.{__instance.propertyInfo.name}", Persistence.language);
+                        $"{customEvent.Name}.{__instance.propertyInfo.name}.note", Persistence.language);
                 }
 
                 __instance.noteText.text = !string.IsNullOrEmpty(localizedString) ? localizedString : __instance.propertyInfo.name;

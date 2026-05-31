@@ -246,7 +246,7 @@ public class CustomEventData
         }
         else if (t == typeof(Color))
         {
-            prop = new ColorProperty(name, colorPickerAttribute?.UseAlpha ?? false);
+            prop = new ColorProperty(name, colorPickerAttribute?.UseAlpha ?? false, defaultValue is Color color ? color.ToHex(colorPickerAttribute?.UseAlpha ?? false, false) : "ffffff");
         }
         else if (t.IsArray)
         {

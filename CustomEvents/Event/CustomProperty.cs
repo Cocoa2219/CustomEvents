@@ -195,8 +195,8 @@ public class BoolProperty : CustomProperty<bool>
 
 public sealed class ColorProperty : CustomProperty<string>
 {
-    public ColorProperty(string name, bool usesAlpha = false)
-        : base(name, usesAlpha ? "ffffffff" : "ffffff")
+    public ColorProperty(string name, bool usesAlpha = false, string @default = null)
+        : base(name, @default)
     {
         UsesAlpha = usesAlpha;
     }

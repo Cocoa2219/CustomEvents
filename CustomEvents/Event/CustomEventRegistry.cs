@@ -4,7 +4,11 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ADOFAI;
+using ADOFAI.Serialization;
 using GDMiniJSON;
 using HarmonyLib;
 using TMPro;
@@ -32,12 +36,13 @@ public static class CustomEventRegistry
     public static IReadOnlyDictionary<(LevelEventType info, string group), Sprite> GroupIconCache => _groupIconCache;
     private static readonly Dictionary<(LevelEventType info, string group), Sprite> _groupIconCache = new();
     
-    public static Dictionary<string, (LevelEventInfo info, List<LevelEventCategory> categoryIds)> EventsToAdd { get; } =
+    internal static Dictionary<string, (LevelEventInfo info, List<LevelEventCategory> categoryIds)> EventsToAdd { get; } =
         new();
 
-    public static Dictionary<LevelEventCategory, Sprite> EventCategoryIconsToAdd { get; } = new();
+    internal static Dictionary<LevelEventCategory, Sprite> EventCategoryIconsToAdd { get; } = new();
 
-    public static Dictionary<LevelEventType, string> KeysToAdd { get; } = new();
+    internal static Dictionary<LevelEventType, string> KeysToAdd { get; } = new();
+    internal static Dictionary<Assembly, Dictionary<PropertyInfo, string>> DefaultValueToAdd { get; } = new();
     
     public static void RegisterCustomEvent(CustomEvent ev)
     {
@@ -97,9 +102,50 @@ public static class CustomEventRegistry
                 var groupKey = (info.type, group.Name);
                 if (group.Icon != null) _groupIconCache[groupKey] = group.Icon;
             }
-        
-        foreach (var prop in evData.Properties) info.propertiesInfo[prop.Name] = new PropertyInfo(prop.Serialize(), info);
 
+        foreach (var prop in evData.Properties)
+        {
+            var propInfo = new PropertyInfo(prop.Serialize(), info);
+            switch (prop)
+            {
+                case StringProperty stringProp:
+                {
+                    var key = string.IsNullOrEmpty(stringProp.Default)
+                        ? $"{ev.Name}.{propInfo.name}.default"
+                        : stringProp.Default;
+                    if (LocalizationRegistry.TryGetLocalizedString(ev.Assembly, key,
+                            LocalizationRegistry.CultureFromSystemLanguage(Persistence.language), out var localized))
+                    {
+                        propInfo.value_default = localized;
+                        break;
+                    }
+
+                    DefaultValueToAdd.TryAdd(ev.Assembly, new Dictionary<PropertyInfo, string>());
+                    
+                    DefaultValueToAdd[ev.Assembly][propInfo] = key;
+                    break;
+                }
+                case TextProperty longStringProp:
+                {
+                    var key = string.IsNullOrEmpty(longStringProp.Default)
+                        ? $"{ev.Name}.{propInfo.name}.default"
+                        : longStringProp.Default;
+                    if (LocalizationRegistry.TryGetLocalizedString(ev.Assembly, key,
+                            LocalizationRegistry.CultureFromSystemLanguage(Persistence.language), out var localized))
+                    {
+                        propInfo.value_default = localized;
+                        break;
+                    }
+
+                    DefaultValueToAdd.TryAdd(ev.Assembly, new Dictionary<PropertyInfo, string>());
+                    DefaultValueToAdd[ev.Assembly][propInfo] = key;
+                    break;
+                }
+            }
+            
+            info.propertiesInfo[prop.Name] = propInfo;
+        }
+        
         if (GCS.levelEventsInfo != null)
         {
             GCS.levelEventsInfo.Add(name, info);
@@ -530,44 +576,47 @@ public class LevelDataEncodePatch
         }
     }
 
-    public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions,
-        ILGenerator generator)
+    public static void Postfix(LevelData __instance, ref Dictionary<string, object> __result)
     {
-        var newInstructions = new List<CodeInstruction>(instructions);
-        var idx = newInstructions.FindIndex(i => i.opcode == OpCodes.Endfinally);
-        idx++;
+        if (__result.TryGetValue("actions", out var events))
+        {
+            if (events is List<Dictionary<string, object>> dict)
+            {
+                if (_customEventsToAdd.Count > 0)
+                    dict.Add(new Dictionary<string, object>
+                    {
+                        { "floor", 0 },
+                        { "eventType", "EditorComment" },
+                        {
+                            "comment",
+                            "!NOTICE\nThese events were added by CustomEvents.\nErasing these events will also erase the custom events.\n\n이 이벤트들은 CustomEvents에서 추가되었습니다.\n이 이벤트들을 지우면 커스텀 이벤트들도 같이 지워집니다."
+                        }
+                    });
 
-        var label = newInstructions[idx].ExtractLabels();
+                foreach (var ev in _customEventsToAdd.Values.OrderBy(x => x.floor).Where(x => x.info.isActive))
+                {
+                    dict.Add(new Dictionary<string, object>
+                    {
+                        { "floor", ev.floor },
+                        { "eventType", "EditorComment" },
+                        {
+                            "comment", "!EVENT\n" + JsonSerializer.Serialize(ev.Encode(), new JsonSerializerOptions
+                            {
+                                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                                Converters =
+                                {
+                                    new LevelArrayConverter()
+                                },
+                                WriteIndented = true
+                            })
+                        }
+                    });
+                    // dict.Add(ev.Encode());
+                }
+            }
+        }
 
-        newInstructions.InsertRange(idx, [
-            new CodeInstruction(OpCodes.Ldarg_0).WithLabels(label),
-            new CodeInstruction(OpCodes.Ldloc_2),
-            new CodeInstruction(OpCodes.Call, Method(typeof(LevelDataEncodePatch), nameof(InsertComments)))
-        ]);
-
-        foreach (var instruction in newInstructions) yield return instruction;
-    }
-
-    public static void InsertComments(LevelData levelData, StringBuilder sb)
-    {
-        if (_customEventsToAdd.Count == 0) return;
-
-        sb.Append(
-            "\t\t{ \"floor\": 0, \"eventType\": \"EditorComment\", \"comment\": \"!NOTICE\\nThese events were added by Cinematic Tools.\\nThey won't affect gameplay, but erasing these events will also erase the custom events.\" },\n");
-
-        var customEvents = _customEventsToAdd.Values.OrderBy(x => x.floor).ToList();
-        foreach (var levelEvent in customEvents)
-            sb.Append(
-                $"\t\t{{ \"floor\": 0, \"eventType\": \"EditorComment\", \"comment\": \"!EVENT\\n{{ {EscapeJsonString(Json.Serialize(levelEvent.Encode()))} }}\" }},\n");
-    }
-
-    private static string EscapeJsonString(string str)
-    {
-        return str.Replace("\\", "\\\\").Replace("\"", "\\\"");
-    }
-
-    public static void Postfix(LevelData __instance)
-    {
         foreach (var kvp in _customEventsToAdd)
         {
             var index = kvp.Key;
