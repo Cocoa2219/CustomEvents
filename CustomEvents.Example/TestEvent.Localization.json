@@ -1,0 +1,37 @@
+{
+  "TestEvent": {
+    "displayName": { "en": "Test Event" },
+    "Message": {
+      "label": { "en": "Message" },
+      "placeholder": { "en": "Type a message to display in logs." },
+      "help": {
+        "text": { "en": "Shown when the event runs. Useful for verifying serialization and localization." },
+        "buttonURL": { "en": "https://example.com" },
+        "buttonText": { "en": "Open Docs" }
+      }
+    },
+    "renamed_value": {
+      "label": { "en": "Renamed Value" }
+    },
+    "note": { "en": "This is a note property used to verify note localization." }
+  },
+  "category": {
+    "TestEvents": { "en": "Test Events" }
+  },
+  "unit": {
+    "beats": { "en": "beats" },
+    "seconds": { "en": "sec" }
+  },
+  "enum": {
+    "TestMode": {
+      "Basic": { "en": "Basic" },
+      "Advanced": { "en": "Advanced" },
+      "Experimental": { "en": "Experimental" }
+    },
+    "TestQuality": {
+      "Low": { "en": "Low" },
+      "Medium": { "en": "Medium" },
+      "High": { "en": "High" }
+    }
+  }
+}

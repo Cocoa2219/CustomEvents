@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="..\packages\ILRepack.2.0.45\build\ILRepack.props" Condition="Exists('..\packages\ILRepack.2.0.45\build\ILRepack.props')" />
+    <Import Project="..\packages\IsExternalInit.1.0.3\build\IsExternalInit.props" Condition="Exists('..\packages\IsExternalInit.1.0.3\build\IsExternalInit.props')" />
+    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+        <ProjectGuid>{8260A679-2D3D-483A-8303-B27A490BC389}</ProjectGuid>
+        <OutputType>Library</OutputType>
+        <AppDesignerFolder>Properties</AppDesignerFolder>
+        <RootNamespace>CinemCustomEventsaticTools</RootNamespace>
+        <AssemblyName>CustomEvents</AssemblyName>
+        <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+        <FileAlignment>512</FileAlignment>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <PlatformTarget>x64</PlatformTarget>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <Optimize>false</Optimize>
+        <OutputPath>bin\Debug\</OutputPath>
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <PlatformTarget>x64</PlatformTarget>
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
+        <OutputPath>bin\Release\</OutputPath>
+        <DefineConstants>TRACE</DefineConstants>
+        <ErrorReport>prompt</ErrorReport>
+        <WarningLevel>4</WarningLevel>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="0Harmony">
+          <HintPath>..\Lib\UnityModManager\0Harmony.dll</HintPath>
+        </Reference>
+        <Reference Include="Assembly-CSharp">
+          <HintPath>..\Lib\Assembly-CSharp-Publicized.dll</HintPath>
+        </Reference>
+        <Reference Include="Assembly-CSharp-firstpass">
+          <HintPath>..\Lib\Assembly-CSharp-firstpass.dll</HintPath>
+        </Reference>
+        <Reference Include="DOTween">
+          <HintPath>..\Lib\DOTween.dll</HintPath>
+        </Reference>
+        <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+          <HintPath>..\packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+        </Reference>
+        <Reference Include="RDTools">
+          <HintPath>..\Lib\RDTools.dll</HintPath>
+        </Reference>
+        
+        <Reference Include="System" />
+        <Reference Include="System.Core" />
+        <Reference Include="System.Data" />
+        <Reference Include="System.Xml" />
+        <Reference Include="Unity.TextMeshPro">
+          <HintPath>..\Lib\Unity.TextMeshPro.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine">
+          <HintPath>..\Lib\UnityEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+          <HintPath>..\Lib\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.ParticleSystemModule">
+          <HintPath>..\Lib\UnityEngine.ParticleSystemModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.UI">
+          <HintPath>..\Lib\UnityEngine.UI.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityModManager">
+          <HintPath>..\Lib\UnityModManager\UnityModManager.dll</HintPath>
+        </Reference>
+
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="Event\CustomEnumRegistry.cs" />
+        <Compile Include="Event\CustomEvent.cs" />
+        <Compile Include="Event\CustomEventData.cs" />
+        <Compile Include="Event\LocalizationRegistry.cs" />
+        <Compile Include="Event\CustomEventRegistry.cs" />
+        <Compile Include="Event\CustomEventRunner.cs" />
+        <Compile Include="Event\CustomProperty.cs" />
+        <Compile Include="Event\EventAttribute.cs" />
+        <Compile Include="Event\EventPropertyAttribute.cs" />
+        <Compile Include="Event\Utils.cs" />
+        <Compile Include="IsExternalInit\IsExternalInit.cs" />
+        <Compile Include="Properties\AssemblyInfo.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="packages.config" />
+    </ItemGroup>
+    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+    <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+      <PropertyGroup>
+        <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105.The missing file is {0}.</ErrorText>
+      </PropertyGroup>
+      <Error Condition="!Exists('..\packages\IsExternalInit.1.0.3\build\IsExternalInit.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\IsExternalInit.1.0.3\build\IsExternalInit.props'))" />
+      <Error Condition="!Exists('..\packages\ILRepack.2.0.45\build\ILRepack.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILRepack.2.0.45\build\ILRepack.props'))" />
+    </Target>
+    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+         Other similar extension points exist, see Microsoft.Common.targets.
+    <Target Name="BeforeBuild">
+    </Target>
+    <Target Name="AfterBuild">
+    </Target>
+    -->
+
+</Project>
