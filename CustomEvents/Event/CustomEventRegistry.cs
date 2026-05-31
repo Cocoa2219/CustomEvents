@@ -612,7 +612,6 @@ public class LevelDataEncodePatch
                             })
                         }
                     });
-                    // dict.Add(ev.Encode());
                 }
             }
         }
