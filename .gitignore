@@ -36,4 +36,8 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-GameLib/
+# DocFX build output directory
+_site/
+
+# DocFX intermediate cache and metadata folders
+api/

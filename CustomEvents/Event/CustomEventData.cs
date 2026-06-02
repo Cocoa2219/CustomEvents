@@ -10,8 +10,11 @@ using PropertyInfo = System.Reflection.PropertyInfo;
 
 namespace CustomEvents.Event;
 
+/// <summary>Builds editor metadata for a <see cref="CustomEvent"/>.</summary>
 public class CustomEventData
 {
+    /// <summary>Initializes a new instance of the <see cref="CustomEventData"/> class.</summary>
+    /// <param name="ev">The event instance to inspect.</param>
     public CustomEventData(CustomEvent ev)
     {
         var type = ev.GetType();
@@ -19,10 +22,10 @@ public class CustomEventData
         var attributes = type.GetCustomAttributes(true);
 
         var categories = new HashSet<LevelEventCategory>();
-        var categoryNames = new HashSet<string>();
         var groups = new List<Group>();
 
         foreach (var t in attributes)
+        {
             switch (t)
             {
                 case EventNameAttribute nameAttr:
@@ -32,12 +35,10 @@ public class CustomEventData
                     var cats = categoryAttr.Categories;
                     foreach (var category in cats)
                     {
-                        categoryNames.Add(category);
                         var parsedCategory = Utils.LooselyParseCategory(category, -1, true);
                         if (parsedCategory != (LevelEventCategory)(-1))
                             categories.Add(parsedCategory);
                     }
-
                     break;
                 case EventPropGroupDefinitionAttribute groupAttr:
                     Sprite icon = null;
@@ -61,13 +62,11 @@ public class CustomEventData
                     });
                     break;
             }
+        }
 
         if (categories.Count == 0) categories.Add((LevelEventCategory)CustomCategoryRegistry.Uncategorized);
 
-        CategoryNames = new string[categoryNames.Count];
-        categoryNames.CopyTo(CategoryNames);
-        Categories = new LevelEventCategory[categories.Count];
-        categories.CopyTo(Categories);
+        Categories = categories.ToArray();
         Groups = groups.ToArray();
 
         var propertiesList = new List<CustomProperty>();
@@ -89,7 +88,6 @@ public class CustomEventData
          var props = type.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public)
             .Where(p => p.CanRead && p.CanWrite && Attribute.IsDefined(p, typeof(EventPropertyAttribute))).Where(x =>
             {
-                // Checking overrides
                 var getter = x.GetGetMethod(true);
                 return getter.GetBaseDefinition() == getter;
             });
@@ -116,9 +114,9 @@ public class CustomEventData
         PropertyFloatAttribute floatAttribute = null;
         PropertyLongInputFieldAttribute longInputAttribute = null;
         PropertyNoteAttribute noteAttribute = null;
-        PropertyFilePickerAttribute filePickerAttribute = null;
+        PropertyFileDialogAttribute fileDialogAttribute = null;
         PropertyStringAttribute stringAttribute = null;
-        PropertyColorPickerAttribute colorPickerAttribute = null;
+        PropertyColorAttribute colorAttribute = null;
         PropertyFloatPairAttribute floatPairAttribute = null;
         PropertyEnumAttribute enumAttribute = null;
         PropertyTileAttribute tileAttribute = null;
@@ -139,130 +137,114 @@ public class CustomEventData
         {
             switch (a)
             {
-                case EventPropertyAttribute pa:
-                    propAttribute = pa;
-                    break;
-                case PropertyRatingAttribute pr:
-                    ratingAttribute = pr;
-                    break;
-                case PropertyIntAttribute pi:
-                    intAttribute = pi;
-                    break;
-                case PropertyFloatAttribute pf:
-                    floatAttribute = pf;
-                    break;
-                case PropertyLongInputFieldAttribute pl:
-                    longInputAttribute = pl;
-                    break;
-                case PropertyNoteAttribute pn:
-                    noteAttribute = pn;
-                    break;
-                case PropertyFilePickerAttribute pfp:
-                    filePickerAttribute = pfp;
-                    break;
-                case PropertyStringAttribute ps:
-                    stringAttribute = ps;
-                    break;
-                case PropertyColorPickerAttribute pcp:
-                    colorPickerAttribute = pcp;
-                    break;
-                case PropertyFloatPairAttribute pfp2:
-                    floatPairAttribute = pfp2;
-                    break;
-                case PropertyEnumAttribute pe:
-                    enumAttribute = pe;
-                    break;
-                case PropertyTileAttribute pt:
-                    tileAttribute = pt;
-                    break;
-                case PropertyVector2Attribute pv:
-                    vector2Attribute = pv;
-                    break;
-                case PropertyVector2RangeAttribute pvr:
-                    vector2RangeAttribute = pvr;
-                    break;
-                case PropertyGroupAttribute pg:
-                    groupAttribute = pg;
-                    break;
-                case PropertyToggleableAttribute ptg:
-                    toggleableAttribute = ptg;
-                    break;
-                case PropertyRequiredAttribute prq:
-                    requiredAttribute = prq;
-                    break;
-                case PropertyLabelAttribute plb:
-                    labelAttribute = plb;
-                    break;
-                case PropertyHelpAttribute ph:
-                    helpAttribute = ph;
-                    break;
-                case PropertyShowIfAttribute psi:
-                    showIfAttributes.Add(psi);
-                    break;
-                case PropertyEnableIfAttribute pei:
-                    enableIfAttributes.Add(pei);
-                    break;
-                case PropertyHideIfAttribute phi:
-                    hideIfAttributes.Add(phi);
-                    break;
-                case PropertyDisableIfAttribute pdi:
-                    disableIfAttributes.Add(pdi);
-                    break;
+                case EventPropertyAttribute pa: propAttribute = pa; break;
+                case PropertyRatingAttribute pr: ratingAttribute = pr; break;
+                case PropertyIntAttribute pi: intAttribute = pi; break;
+                case PropertyFloatAttribute pf: floatAttribute = pf; break;
+                case PropertyLongInputFieldAttribute pl: longInputAttribute = pl; break;
+                case PropertyNoteAttribute pn: noteAttribute = pn; break;
+                case PropertyFileDialogAttribute pfp: fileDialogAttribute = pfp; break;
+                case PropertyStringAttribute ps: stringAttribute = ps; break;
+                case PropertyColorAttribute pcp: colorAttribute = pcp; break;
+                case PropertyFloatPairAttribute pfp2: floatPairAttribute = pfp2; break;
+                case PropertyEnumAttribute pe: enumAttribute = pe; break;
+                case PropertyTileAttribute pt: tileAttribute = pt; break;
+                case PropertyVector2Attribute pv: vector2Attribute = pv; break;
+                case PropertyVector2RangeAttribute pvr: vector2RangeAttribute = pvr; break;
+                case PropertyGroupAttribute pg: groupAttribute = pg; break;
+                case PropertyToggleableAttribute ptg: toggleableAttribute = ptg; break;
+                case PropertyRequiredAttribute prq: requiredAttribute = prq; break;
+                case PropertyLabelAttribute plb: labelAttribute = plb; break;
+                case PropertyHelpAttribute ph: helpAttribute = ph; break;
+                case PropertyShowIfAttribute psi: showIfAttributes.Add(psi); break;
+                case PropertyEnableIfAttribute pei: enableIfAttributes.Add(pei); break;
+                case PropertyHideIfAttribute phi: hideIfAttributes.Add(phi); break;
+                case PropertyDisableIfAttribute pdi: disableIfAttributes.Add(pdi); break;
             }
         }
 
         var name = string.IsNullOrEmpty(propAttribute?.Name) ? memberName : propAttribute.Name;
+
+        // Collect condition arrays upfront
+        (string key, string value)[] showIf = showIfAttributes.Count > 0 
+            ? showIfAttributes.Select(x => (x.ConditionPropertyName, x.ExpectedValue)).ToArray() : null;
+        (string key, string value)[] enableIf = enableIfAttributes.Count > 0 
+            ? enableIfAttributes.Select(x => (x.ConditionPropertyName, x.ExpectedValue)).ToArray() : null;
+        (string key, string value)[] hideIf = hideIfAttributes.Count > 0 
+            ? hideIfAttributes.Select(x => (x.ConditionPropertyName, x.ExpectedValue)).ToArray() : null;
+        (string key, string value)[] disableIf = disableIfAttributes.Count > 0 
+            ? disableIfAttributes.Select(x => (x.ConditionPropertyName, x.ExpectedValue)).ToArray() : null;
+
+        // Consolidate metadata values into PropertyData struct assembly
+        PropertyData data = new()
+        {
+            Group = groupAttribute?.Name,
+            CustomLabel = labelAttribute?.CustomLabel,
+            LocalizationKey = labelAttribute?.LocalizationKey,
+            CanBeDisabled = toggleableAttribute != null,
+            StartEnabled = toggleableAttribute?.IsOnByDefault ?? false,
+            Required = requiredAttribute != null,
+            Unit = propAttribute?.Unit,
+            Placeholder = propAttribute?.Placeholder,
+            IsInvisible = propAttribute?.IsInvisible ?? false,
+            IgnoreRange = propAttribute?.IgnoreRange ?? false,
+            IsDevOnly = propAttribute?.IsDevOnly ?? false,
+            ShouldEncode = propAttribute?.ShouldEncode ?? false,
+            AffectsFloors = propAttribute?.AffectsFloors ?? false,
+            AffectsPath = propAttribute?.AffectsPath ?? false,
+            ShowIf = showIf,
+            EnableIf = enableIf,
+            HideIf = hideIf,
+            DisableIf = disableIf
+        };
+
         CustomProperty prop = null;
 
         if (t == typeof(int))
         {
             if (ratingAttribute != null)
-                prop = new RatingProperty(name, defaultValue is int v ? v : 0);
+                prop = new RatingProperty(name, data, defaultValue is int v ? v : 0);
             else
-                prop = new IntProperty(name, intAttribute?.Min ?? int.MinValue, intAttribute?.Max ?? int.MaxValue,
-                    defaultValue is int v ? v : 0);
+                prop = new IntProperty(name, data, intAttribute?.Min ?? int.MinValue, intAttribute?.Max ?? int.MaxValue, defaultValue is int v ? v : 0);
         }
         else if (t == typeof(float))
         {
-            prop = new FloatProperty(name, floatAttribute?.Min ?? float.MinValue, floatAttribute?.Max ?? float.MaxValue,
-                defaultValue is float v ? v : 0f);
+            prop = new FloatProperty(name, data, floatAttribute?.Min ?? float.MinValue, floatAttribute?.Max ?? float.MaxValue, defaultValue is float v ? v : 0f);
         }
         else if (t == typeof(string))
         {
             if (longInputAttribute != null)
-                prop = new TextProperty(name, defaultValue as string ?? "");
-            else if (filePickerAttribute != null)
-                prop = new FileProperty(name, filePickerAttribute.Type, defaultValue as string ?? "");
+                prop = new TextProperty(name, data, defaultValue as string ?? "");
+            else if (fileDialogAttribute != null)
+                prop = new FileProperty(name, data, fileDialogAttribute.Type, defaultValue as string ?? "");
             else if (noteAttribute != null)
-                prop = new NoteProperty(name, defaultValue as string ?? "");
+                prop = new NoteProperty(name, data, defaultValue as string ?? "");
             else
-                prop = new StringProperty(name, stringAttribute?.MinLength ?? int.MinValue,
-                    stringAttribute?.MaxLength ?? int.MaxValue, stringAttribute?.NeedsUnicode ?? true,
-                    stringAttribute?.Localizable ?? false, defaultValue as string ?? "");
+                prop = new StringProperty(name, data, stringAttribute?.MinLength ?? int.MinValue, stringAttribute?.MaxLength ?? int.MaxValue, stringAttribute?.NeedsUnicode ?? true, stringAttribute?.Localizable ?? false, defaultValue as string ?? "");
         }
         else if (t == typeof(bool))
         {
-            prop = new BoolProperty(name, defaultValue is true);
+            prop = new BoolProperty(name, data, defaultValue is true);
         }
         else if (t == typeof(Color))
         {
-            prop = new ColorProperty(name, colorPickerAttribute?.UseAlpha ?? false, defaultValue is Color color ? color.ToHex(colorPickerAttribute?.UseAlpha ?? false, false) : "ffffff");
+            bool useAlpha = colorAttribute?.UseAlpha ?? false;
+            string fallbackColor = defaultValue is Color color ? color.ToHex(useAlpha, false) : "ffffff";
+            prop = new ColorProperty(name, data, useAlpha, fallbackColor);
         }
         else if (t.IsArray)
         {
             var elementType = t.GetElementType();
             var propType = typeof(ArrayProperty<>).MakeGenericType(elementType);
-            prop = (CustomProperty)Activator.CreateInstance(propType, name, defaultValue as Array);
+            prop = (CustomProperty)Activator.CreateInstance(propType, name, data, defaultValue as Array);
         }
         else if (t == typeof(ValueTuple<float, float>))
         {
-            prop = new FloatPairProperty(name, floatPairAttribute?.Min ?? float.MinValue,
-                floatPairAttribute?.Max ?? float.MaxValue, .1f,
-                floatPairAttribute?.IsRange ?? true, defaultValue is ValueTuple<float, float> v ? v : (0f, 0f));
+            prop = new FloatPairProperty(name, data, floatPairAttribute?.Min ?? float.MinValue, floatPairAttribute?.Max ?? float.MaxValue, .1f, floatPairAttribute?.IsRange ?? true, defaultValue is ValueTuple<float, float> v ? v : (0f, 0f));
         }
         else if (t == typeof(SerializedMinMaxGradient))
         {
-            prop = new MinMaxGradient(name);
+            prop = new MinMaxGradient(name, data);
         }
         else if (t.IsEnum)
         {
@@ -277,6 +259,7 @@ public class CustomEventData
             {
                 var exclusionsList = new List<object>();
                 foreach (var t1 in enumAttribute.Exclusions)
+                {
                     try
                     {
                         var converted = Convert.ChangeType(t1, elementType);
@@ -286,6 +269,7 @@ public class CustomEventData
                     {
                         // ignored
                     }
+                }
 
                 result = Array.CreateInstance(elementType, exclusionsList.Count);
                 for (var i = 0; i < exclusionsList.Count; i++) result.SetValue(exclusionsList[i], i);
@@ -294,26 +278,21 @@ public class CustomEventData
             var defaultEnumValue = defaultValue != null && Enum.IsDefined(t, defaultValue)
                 ? defaultValue
                 : Enum.GetValues(t).GetValue(0);
+            
             var propType = typeof(EnumProperty<>).MakeGenericType(t);
-            prop = (CustomProperty)Activator.CreateInstance(propType, name, result, defaultEnumValue);
+            prop = (CustomProperty)Activator.CreateInstance(propType, name, data, result, defaultEnumValue);
         }
         else if (t == typeof(ValueTuple<int, TileRelativeTo>))
         {
-            prop = new TileProperty(name, tileAttribute?.Min ?? int.MinValue, tileAttribute?.Max ?? int.MaxValue, [],
-                defaultValue is ValueTuple<int, TileRelativeTo> v
-                    ? v
-                    : new ValueTuple<int, TileRelativeTo>(0, TileRelativeTo.ThisTile));
+            prop = new TileProperty(name, data, tileAttribute?.Min ?? int.MinValue, tileAttribute?.Max ?? int.MaxValue, defaultValue is ValueTuple<int, TileRelativeTo> tile ? tile : (0, TileRelativeTo.ThisTile));
         }
         else if (t == typeof(Vector2))
         {
-            prop = new Vector2Property(name, vector2Attribute?.Min, vector2Attribute?.Max,
-                vector2Attribute?.AllowEmpty ?? false,
-                defaultValue is Vector2 vec ? vec : default);
+            prop = new Vector2Property(name, data, vector2Attribute?.Min, vector2Attribute?.Max, vector2Attribute?.AllowEmpty ?? false, defaultValue is Vector2 vec ? vec : default);
         }
         else if (t == typeof(ValueTuple<Vector2, Vector2>))
         {
-            prop = new Vector2RangeProperty(name, vector2RangeAttribute?.IsRange ?? true,
-                defaultValue is ValueTuple<Vector2, Vector2> vecRange ? vecRange : null);
+            prop = new Vector2RangeProperty(name, data, vector2RangeAttribute?.IsRange ?? true, defaultValue is ValueTuple<Vector2, Vector2> vecRange ? vecRange : null);
         }
         else
         {
@@ -322,68 +301,7 @@ public class CustomEventData
 
         if (prop != null)
         {
-            if (groupAttribute != null) prop.Group = groupAttribute.Name;
-            
-            if (labelAttribute != null)
-            {
-                prop.CustomLabel = labelAttribute.CustomLabel;
-                prop.LocalizationKey = labelAttribute.LocalizationKey;
-            }
-
-            if (toggleableAttribute != null)
-            {
-                prop.CanBeDisabled = true;
-                prop.StartEnabled = toggleableAttribute.IsOnByDefault;
-            }
-            
             if (helpAttribute != null) HelpMap[prop.Name] = helpAttribute;
-
-            if (showIfAttributes.Count > 0)
-            {
-                var arr = new (string, string)[showIfAttributes.Count];
-                for (var i = 0; i < showIfAttributes.Count; i++)
-                    arr[i] = (showIfAttributes[i].ConditionPropertyName, showIfAttributes[i].ExpectedValue);
-                prop.ShowIf = arr;
-            }
-
-            if (enableIfAttributes.Count > 0)
-            {
-                var arr = new (string, string)[enableIfAttributes.Count];
-                for (var i = 0; i < enableIfAttributes.Count; i++)
-                    arr[i] = (enableIfAttributes[i].ConditionPropertyName, enableIfAttributes[i].ExpectedValue);
-                prop.EnableIf = arr;
-            }
-
-            if (hideIfAttributes.Count > 0)
-            {
-                var arr = new (string, string)[hideIfAttributes.Count];
-                for (var i = 0; i < hideIfAttributes.Count; i++)
-                    arr[i] = (hideIfAttributes[i].ConditionPropertyName, hideIfAttributes[i].ExpectedValue);
-                prop.HideIf = arr;
-            }
-
-            if (disableIfAttributes.Count > 0)
-            {
-                var arr = new (string, string)[disableIfAttributes.Count];
-                for (var i = 0; i < disableIfAttributes.Count; i++)
-                    arr[i] = (disableIfAttributes[i].ConditionPropertyName, disableIfAttributes[i].ExpectedValue);
-                prop.DisableIf = arr;
-            }
-
-            if (requiredAttribute != null) prop.Required = true;
-            if (propAttribute != null)
-            {
-                prop.IsEnabled = propAttribute.IsEnabled;
-                prop.Unit = propAttribute.Unit;
-                prop.Placeholder = propAttribute.Placeholder;
-                prop.IsInvisible = propAttribute.IsInvisible;
-                prop.IgnoreRange = propAttribute.IgnoreRange;
-                prop.IsDevOnly = propAttribute.IsDevOnly;
-                prop.ShouldEncode = propAttribute.ShouldEncode;
-                prop.AffectsFloors = propAttribute.AffectsFloors;
-                prop.AffectsPath = propAttribute.AffectsPath;
-            }
-            
             PropertyMap.Add(prop, member);
             propertiesList.Add(prop);
         }
@@ -399,23 +317,33 @@ public class CustomEventData
         };
     }
 
+    /// <summary>Gets the localization key for the event name.</summary>
     public string NameKey { get; }
     
+    /// <summary>Gets the parsed category values for the event.</summary>
     public LevelEventCategory[] Categories { get; }
-    public string[] CategoryNames { get; }
+
+    /// <summary>Gets the property groups declared on the event.</summary>
     public Group[] Groups { get; }
 
+    /// <summary>Gets the generated property metadata.</summary>
     public CustomProperty[] Properties { get; }
-    private readonly Dictionary<string, CustomProperty> _propertiesByName = new();
+    
+    /// <summary>Gets the generated property metadata indexed by property name.</summary>
     public IReadOnlyDictionary<string, CustomProperty> PropertiesByName => _propertiesByName;
-
+    private readonly Dictionary<string, CustomProperty> _propertiesByName = new();
+    
     internal Dictionary<string, PropertyHelpAttribute> HelpMap { get; } = new();
     internal Dictionary<CustomProperty, MemberInfo> PropertyMap { get; } = new();
 
+    /// <summary>Describes a property group.</summary>
     public struct Group
     {
+        /// <summary>Gets or sets the group name.</summary>
         public string Name;
+        /// <summary>Gets or sets the group icon.</summary>
         public Sprite Icon;
+        /// <summary>Gets or sets a value that indicates whether the group is the default group.</summary>
         public bool IsDefault;
     }
 }

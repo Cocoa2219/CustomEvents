@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -11,28 +11,34 @@ using ADOFAI;
 using ADOFAI.Serialization;
 using GDMiniJSON;
 using HarmonyLib;
-using TMPro;
 using UnityEngine;
 using static HarmonyLib.AccessTools;
 using PropertyInfo = ADOFAI.PropertyInfo;
 
 namespace CustomEvents.Event;
 
+/// <summary>Registers, maps, and caches runtime metadata declarations for custom events and custom layout categories.</summary>
 public static class CustomEventRegistry
 {
     private static Harmony _harmony;
 
+    /// <summary>Gets the registered custom event definitions indexed by their calculated runtime <see cref="LevelEventType"/>.</summary>
     public static IReadOnlyDictionary<LevelEventType, CustomEvent> CustomEvents => _customEvents;
     private static readonly Dictionary<LevelEventType, CustomEvent> _customEvents = new();
+
+    /// <summary>Gets the compiled property parsing metadata indices mapped by their runtime <see cref="LevelEventType"/>.</summary>
     public static IReadOnlyDictionary<LevelEventType, CustomEventData> CustomEventData => _customEventData;
     private static readonly Dictionary<LevelEventType, CustomEventData> _customEventData = new();
 
+    /// <summary>Gets the structural lookup index that translates fully qualified custom string names directly into explicit <see cref="LevelEventType"/> values.</summary>
     public static IReadOnlyDictionary<string, LevelEventType> NameToIdCache => _nameToIdCache;
     private static readonly Dictionary<string, LevelEventType> _nameToIdCache = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Gets the configured layout metadata parameters indexed by their dynamically allocated <see cref="LevelEventCategory"/> key.</summary>
     public static IReadOnlyDictionary<LevelEventCategory, (Sprite icon, string localizationKey)> CategoryCache => _categoryCache;
     private static readonly Dictionary<LevelEventCategory, (Sprite, string)> _categoryCache = new();
 
+    /// <summary>Gets the registered section headers textures used to customize inspector panels, indexed by composite event types and group identifiers.</summary>
     public static IReadOnlyDictionary<(LevelEventType info, string group), Sprite> GroupIconCache => _groupIconCache;
     private static readonly Dictionary<(LevelEventType info, string group), Sprite> _groupIconCache = new();
     
@@ -44,6 +50,9 @@ public static class CustomEventRegistry
     internal static Dictionary<LevelEventType, string> KeysToAdd { get; } = new();
     internal static Dictionary<Assembly, Dictionary<PropertyInfo, string>> DefaultValueToAdd { get; } = new();
     
+    /// <summary>Registers a concrete <see cref="CustomEvent"/> instance into the engine state pipelines and initializes runtime tracking hooks.</summary>
+    /// <param name="ev">The explicit custom event structure undergoing system registration parameters assignment.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="ev"/> evaluates as null.</exception>
     public static void RegisterCustomEvent(CustomEvent ev)
     {
         if (_harmony == null)
@@ -67,6 +76,8 @@ public static class CustomEventRegistry
                 "targetFramerate"
             ];
         }
+        
+        if (ev == null) throw new ArgumentNullException(nameof(ev));
 
         var evData = new CustomEventData(ev);
 
@@ -121,7 +132,6 @@ public static class CustomEventRegistry
                     }
 
                     DefaultValueToAdd.TryAdd(ev.Assembly, new Dictionary<PropertyInfo, string>());
-                    
                     DefaultValueToAdd[ev.Assembly][propInfo] = key;
                     break;
                 }
@@ -159,7 +169,6 @@ public static class CustomEventRegistry
             EventsToAdd[name] = (info, evData.Categories.ToList());
         }
 
-        // timing issue, plugin was loaded before the ADOStartup started
         if (GCS.levelEventTypeString == null)
             KeysToAdd[id] = name;
         else
@@ -168,11 +177,16 @@ public static class CustomEventRegistry
         _customEvents[id] = ev;
     }
 
+    /// <summary>Loops through an ordered sequence of <see cref="CustomEvent"/> items to configure their engine metadata profiles sequentially.</summary>
+    /// <param name="events">The incoming collection containing target custom events models.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="events"/> maps out as null.</exception>
     public static void RegisterCustomEvents(IEnumerable<CustomEvent> events)
     {
+        if (events == null) throw new ArgumentNullException(nameof(events));
         foreach (var ev in events) RegisterCustomEvent(ev);
     }
 
+    /// <summary>Reflectively gathers and initializes all concrete, non-abstract classes extending <see cref="CustomEvent"/> present inside the calling assembly.</summary>
     public static void RegisterAll()
     {
         var allEvents = Assembly.GetCallingAssembly().GetTypes()
@@ -182,6 +196,10 @@ public static class CustomEventRegistry
         RegisterCustomEvents(allEvents);
     }
 
+    /// <summary>Registers a localized layout section descriptor inside the system category registry tracking structures.</summary>
+    /// <param name="categoryName">The tracking key string assigned to represent the unique grouping identifier.</param>
+    /// <param name="icon">The asset tracking texture used to illustrate tab views inside custom engine navigation containers.</param>
+    /// <param name="localizationKey">The target dictionary identifier used to look up translated section label layouts text values strings variables.</param>
     public static void RegisterCategory(string categoryName, Sprite icon = null, string localizationKey = null)
     {
         if (_harmony == null)
@@ -220,9 +238,15 @@ public static class CustomEventRegistry
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="ADOStartup.DecodeLevelEventInfoList"/>.</summary>
+/// <remarks>This patch intercepts static enum reading steps to let the system accurately process unrecognized extension event types parameters entries paths indices mappings.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(ADOStartup), nameof(ADOStartup.DecodeLevelEventInfoList))]
 public class DecodeLevelEventInfoListPatch
 {
+    /// <summary>Transpiles the text parsing routines, replacing native enum conversion instructions with loose custom formatting identifiers parsers.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -234,9 +258,15 @@ public class DecodeLevelEventInfoListPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="scnEditor.LoadEditorProperties"/>.</summary>
+/// <remarks>This patch injects dynamic lookup bounds definitions, allowing custom collection segments to map without triggering structural array errors.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(scnEditor), nameof(scnEditor.LoadEditorProperties))]
 public class scnEditorLoadEditorPropertiesPatch
 {
+    /// <summary>Alters internal level category indexing arrays generation steps, linking our registry data lists seamlessly inside engine generation loops blocks.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -265,9 +295,15 @@ public class scnEditorLoadEditorPropertiesPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="scnEditor.SetupFavoritesCategory"/>.</summary>
+/// <remarks>This patch hooks internal configuration storage updates, ensuring custom elements map consistently into save files and active configuration trackers profiles parameters references.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(scnEditor), nameof(scnEditor.SetupFavoritesCategory))]
 public class scnEditorSetupFavoritesCategory
 {
+    /// <summary>Rewrites validation checks parameters filters, enabling extended selection listings tracking layers to parse validation entries correctly variables paths elements tracking.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -279,9 +315,15 @@ public class scnEditorSetupFavoritesCategory
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="InspectorPanel.Init"/>.</summary>
+/// <remarks>This patch intercepts editor drawing logic to load dynamic tab elements and handle asset tracking indicators correctly.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(InspectorPanel), nameof(InspectorPanel.Init))]
 public class InspectorPanelInitPatch
 {
+    /// <summary>Alters initialization data flow logic to prevent out-of-bounds selection index runtime bugs when processing extension elements variables blocks.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -293,6 +335,8 @@ public class InspectorPanelInitPatch
         foreach (var instruction in newInstructions) yield return instruction;
     }
 
+    /// <summary>Injects registered visual icon segments into generated custom subsection tab buttons elements layout grids containers.</summary>
+    /// <param name="__instance">The active instance reference of the targeted initializing UI <see cref="InspectorPanel"/> controller.</param>
     public static void Postfix(InspectorPanel __instance)
     {
         var panels = __instance.panelsList;
@@ -317,15 +361,22 @@ public class InspectorPanelInitPatch
     }
 }
 
+/// <summary>Harmony patch container targeting internal level event image assets loading routines blocks.</summary>
+/// <remarks>This patch dynamically appends missing key entries onto active runtime dictionary collections to register icon maps dependencies rules elements lines.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch]
 public class LoadLevelEventSpritesPatch
 {
+    /// <summary>Resolves the target asset loading method context structure dynamically using criteria matching operations steps parameters logs.</summary>
+    /// <returns>Returns the verified <see cref="MethodBase"/> handle tracking targeting parameters context locations layers pathways structural markers mappings entries indexes markers indicators.</returns>
     public static MethodBase TargetMethod()
     {
         return FirstMethod(typeof(scnEditor), m =>
             m.Name.Contains("LoadLevelEventSprites") && m.GetParameters().Length == 0);
     }
 
+    /// <summary>Appends all registered custom events icon indicators texture profiles variables onto global engine caches tables.</summary>
+    /// <param name="__instance">The active instance reference of the executing <see cref="scnEditor"/> lifecycle manager.</param>
     public static void Postfix(scnEditor __instance)
     {
         foreach (var kvp in CustomEventRegistry.CustomEvents)
@@ -336,9 +387,15 @@ public class LoadLevelEventSpritesPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="LevelEventButton.Init"/>.</summary>
+/// <remarks>This patch adjusts label loading systems to correctly populate extended event display descriptors blocks lists.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelEventButton), nameof(LevelEventButton.Init))]
 public class LevelEventButtonInitPatch
 {
+    /// <summary>Replaces the native structural string lookup call instructions with our multi-assembly localization conversion systems pipelines markers layers pathways indices.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -352,9 +409,13 @@ public class LevelEventButtonInitPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="ADOStartup.SetupLevelEventsInfo"/>.</summary>
+/// <remarks>This patch safely pushes extension properties and dynamic configurations into native collection frameworks after initialization.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(ADOStartup), nameof(ADOStartup.SetupLevelEventsInfo))]
 public class ADOStartupSetupLevelEventsInfoPatch
 {
+    /// <summary>Flushes delayed initialization objects data maps onto active game caches maps pools layers cleanly after internal initialization logic steps wrap.</summary>
     public static void Postfix()
     {
         foreach (var kvp in CustomEventRegistry.EventsToAdd)
@@ -374,10 +435,16 @@ public class ADOStartupSetupLevelEventsInfoPatch
     }
 }
 
+/// <summary>Harmony patch container targeting the <see cref="LevelEvent"/> instance construction rules workflows pipeline.</summary>
+/// <remarks>This patch ensures unique tracking key string signatures remain completely pristine when passing down initialization blocks pipelines metrics.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelEvent), MethodType.Constructor, typeof(int), typeof(LevelEventType), typeof(LevelEventInfo),
     typeof(Dictionary<string, object>), typeof(Dictionary<string, bool>), typeof(bool), typeof(bool), typeof(bool))]
 public class LevelEventConstructorPatch
 {
+    /// <summary>Alters bytecode mapping pathways logic, using dynamic custom string conversion steps instead of standard enum-to-index tracking logic blocks parameters operations trackers context layers structures entries.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -393,9 +460,15 @@ public class LevelEventConstructorPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="InspectorPanel.ShowPanel"/>.</summary>
+/// <remarks>This patch updates inspector UI panel logic to prevent title translation string resolution errors during selection changes.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(InspectorPanel), nameof(InspectorPanel.ShowPanel))]
 public class InspectorPanelShowPanelPatch
 {
+    /// <summary>Intercepts structural header text assignments, inserting loose validation parameters handling string mapping structures variables elements paths tracking indices indicators options profiles context layers profiles tags.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -412,9 +485,15 @@ public class InspectorPanelShowPanelPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="LevelEvent.Encode"/>.</summary>
+/// <remarks>This patch updates serialization logic to prevent custom type information from being lost or corrupted during save operations.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelEvent), nameof(LevelEvent.Encode))]
 public class LevelEventEncodePatch
 {
+    /// <summary>Rewrites serialization streams bytecode operations markers, forcing structural identifier translation steps to preserve string values configurations parameters checks indices lines.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -430,9 +509,15 @@ public class LevelEventEncodePatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="LevelEvent.Decode"/>.</summary>
+/// <remarks>This patch intercepts level loading data deserialization streams to map custom types back into memory safely.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelEvent), nameof(LevelEvent.Decode))]
 public class LevelEventDecodePatch
 {
+    /// <summary>Adjusts structural parser initialization pathways, directing dynamic parsing operations through our loose string-matching pipeline hooks markers layers.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -445,15 +530,21 @@ public class LevelEventDecodePatch
     }
 }
 
+/// <summary>Harmony patch container targeting internal level category icon loading methods configurations routines.</summary>
+/// <remarks>This patch appends extension layout visual sprites into active memory arrays context lines securely.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch]
 public class scnEditorLoadLevelCategorySpritesPatch
 {
+    /// <summary>Resolves the target asset rendering logic module context structures using criteria mapping logic patterns records values checks indices indicators markers elements profiles.</summary>
+    /// <returns>Returns the verified target <see cref="MethodBase"/> parameters markers identifiers context locations indicators mappings paths blocks registries profiles logs entries options pipelines.</returns>
     public static MethodBase TargetMethod()
     {
         return FirstMethod(typeof(scnEditor), m =>
             m.Name.Contains("LoadLevelCategorySprites") && m.GetParameters().Length == 0);
     }
 
+    /// <summary>Populates active system categories texture lookup blocks pools structures with registered custom extension icons data profiles parameters checks entries objects maps trackers lists.</summary>
     public static void Postfix()
     {
         foreach (var kvp in CustomEventRegistry.EventCategoryIconsToAdd) GCS.eventCategoryIcons.Add(kvp.Key, kvp.Value);
@@ -461,9 +552,15 @@ public class scnEditorLoadLevelCategorySpritesPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="CategoryTab"/> layouts workflows modules control parameters tracking entries indicators flags.</summary>
+/// <remarks>This patch intercepts layout icon population pipelines to inject visual indicators for custom categories.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(CategoryTab))]
 public class CategoryTabPatch
 {
+    /// <summary>Alters layout drawing code instructions, replacing native cache assignments with safe verification wrapper calls to resolve textures securely context parameters markers options variables flags elements structures layers profiles context parameters tracking.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     [HarmonyPatch(nameof(CategoryTab.Init))]
     [HarmonyTranspiler]
     public static IEnumerable<CodeInstruction> InitTranspiler(IEnumerable<CodeInstruction> instructions)
@@ -478,6 +575,9 @@ public class CategoryTabPatch
         foreach (var instruction in newInstructions) yield return instruction;
     }
 
+    /// <summary>Resolves a category icon, falling back to <see cref="LevelEventCategory.Gameplay"/> if no specific texture asset path is assigned.</summary>
+    /// <param name="category">The targeting level event category data parameters entries flags tracking values indices maps metrics objects layers context rules.</param>
+    /// <returns>Returns the verified sprite element object configuration container profile parameters references.</returns>
     public static Sprite SafelyGetCategorySprite(LevelEventCategory category)
     {
         if (GCS.eventCategoryIcons.TryGetValue(category, out var sprite)) return sprite;
@@ -488,9 +588,15 @@ public class CategoryTabPatch
     }
 }
 
+/// <summary>Harmony patch container targeting editor category layout pagination execution routines paths modules trackers parameters structures mappings profiles definitions.</summary>
+/// <remarks>This patch adjusts bounds validation checks during editor pagination loops to prevent array exceptions when iterating custom categories.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(scnEditor), "CycleEventsPage")]
 public class scnEditorCycleEventsPagePatch
 {
+    /// <summary>Modifies internal page index calculation math blocks logic variables parameters metrics pipelines data pathways entries tracking indices flags options controls.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -519,9 +625,15 @@ public class scnEditorCycleEventsPagePatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="scnEditor.RemoveEventAtSelected"/>.</summary>
+/// <remarks>This patch ensures custom events display their correct names instead of falling back to default placeholders when removed from a floor sequence.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(scnEditor), nameof(scnEditor.RemoveEventAtSelected))]
 public class scnEditorRemoveEventAtSelectedPatch
 {
+    /// <summary>Rewrites deletion logging pipelines bytecode operations to safely preserve dynamic display names entries markers pathways configurations parameters maps checks lines tracking.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -538,9 +650,15 @@ public class scnEditorRemoveEventAtSelectedPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="InspectorPanel.ShowTabsForFloor"/>.</summary>
+/// <remarks>This patch adjusts runtime type collection logic to render tracking markers for custom events alongside built-in categories.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(InspectorPanel), nameof(InspectorPanel.ShowTabsForFloor))]
 public class InspectorPanelShowTabsForFloorPatch
 {
+    /// <summary>Alters data array generation pathways, inserting our extended enumeration array builders to expose custom types options variables elements markers tracks maps pipelines.</summary>
+    /// <param name="instructions">The active IL compilation instructions sequence undergoing manipulation steps paths metrics.</param>
+    /// <returns>Returns the modified bytecode streams tracking instructions updated structure parameters references.</returns>
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var newInstructions = new List<CodeInstruction>(instructions);
@@ -550,6 +668,9 @@ public class InspectorPanelShowTabsForFloorPatch
         foreach (var instruction in newInstructions) yield return instruction;
     }
 
+    /// <summary>Combines native level event types with our active registry keys to provide a unified array for UI binding containers.</summary>
+    /// <param name="type">The incoming system reflection enum type parameter model undergoing processing validations calculations metrics layers.</param>
+    /// <returns>Returns an array containing both standard and extended custom event types.</returns>
     public static LevelEventType[] GetExtendedValues(Type type)
     {
         var original = (LevelEventType[])Enum.GetValues(type);
@@ -560,11 +681,16 @@ public class InspectorPanelShowTabsForFloorPatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="LevelData.EncodeToDictionary"/>.</summary>
+/// <remarks>This patch strips out custom events before native serialization and packages them as editor comments to allow backward compatibility without breaking vanilla game saves.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelData), nameof(LevelData.EncodeToDictionary))]
 public class LevelDataEncodePatch
 {
     private static readonly Dictionary<int, LevelEvent> _customEventsToAdd = new();
 
+    /// <summary>Isolates custom events from the native levels list map to safeguard vanilla level compilation blocks pipelines variables.</summary>
+    /// <param name="__instance">The active instance reference of the serializing <see cref="LevelData"/> container model parameters.</param>
     public static void Prefix(LevelData __instance)
     {
         _customEventsToAdd.Clear();
@@ -576,6 +702,9 @@ public class LevelDataEncodePatch
         }
     }
 
+    /// <summary>Appends safety notice remarks cards blocks and serializes custom event objects arrays directly inside level files dictionaries structures entries.</summary>
+    /// <param name="__instance">The active instance reference of the serializing <see cref="LevelData"/> container model parameters.</param>
+    /// <param name="__result">The output dictionary tracking serialization key-value parameters references produced by the default execution flow pipeline.</param>
     public static void Postfix(LevelData __instance, ref Dictionary<string, object> __result)
     {
         if (__result.TryGetValue("actions", out var events))
@@ -616,6 +745,7 @@ public class LevelDataEncodePatch
             }
         }
 
+        // Restore original working levelEvents array order so native runtime data calculations remain uninterrupted
         foreach (var kvp in _customEventsToAdd)
         {
             var index = kvp.Key;
@@ -628,9 +758,14 @@ public class LevelDataEncodePatch
     }
 }
 
+/// <summary>Harmony patch container targeting <see cref="LevelData.Decode"/>.</summary>
+/// <remarks>This patch intercepts post-deserialization data states to capture the structured text markup strings within <see cref="LevelEventType.EditorComment"/> fields and extract hidden custom events back into memory.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelData), nameof(LevelData.Decode))]
 public class LevelDataDecodePatch
 {
+    /// <summary>Iterates through decoded level entries to isolate, unpack, and reconstitute serialized custom events from embedded comment headers.</summary>
+    /// <param name="__instance">The active structural reference of the deserialized <see cref="LevelData"/> container framework undergoing recovery operations.</param>
     public static void Postfix(LevelData __instance)
     {
         var commentEvents = __instance.levelEvents.Where(e => e.eventType == LevelEventType.EditorComment).ToList();
@@ -660,15 +795,23 @@ public class LevelDataDecodePatch
                 }
     }
 
+    /// <summary>Strips escaping backslash artifacts added during textual multi-line JSON encoding layers inside the comment block parameters.</summary>
+    /// <param name="str">The escaped raw payload text stream extracted from the level file structure.</param>
+    /// <returns>A normalized structural string ready for generic key-value dictionary tokenization parsing.</returns>
     private static string UnescapeJsonString(string str)
     {
         return str.Replace("\\\"", "\"").Replace("\\\\", "\\");
     }
 }
 
+/// <summary>Harmony patch container targeting the property setter for <see cref="LevelEventButton.enableButton"/>.</summary>
+/// <remarks>This patch captures activation toggles to force real-time visual UI layout components synchronizations when selections clear layout trees.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelEventButton), nameof(LevelEventButton.enableButton), MethodType.Setter)]
 public class LevelEventButtonEnableButtonPatch
 {
+    /// <summary>Forcibly overrides visual focus parameters state metrics when an action button state transitions into an inactive/disabled condition profile.</summary>
+    /// <param name="__instance">The active instance tracking reference of the undergoing state assignment layout component <see cref="LevelEventButton"/>.</param>
     public static void Postfix(LevelEventButton __instance)
     {
         __instance.ShowAsSelected(false);

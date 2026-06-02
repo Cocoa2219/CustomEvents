@@ -73,7 +73,7 @@ namespace CustomEvents.Example
         public string LongDescription { get; set; } = "Detailed description for testing.";
 
         [EventProperty]
-        [PropertyColorPicker(true)]
+        [PropertyColor(true)]
         [PropertyToggleable(true)]
         [PropertyGroup(Name = "Advanced")]
         public Color Tint { get; set; } = new Color(1f, 0.3f, 0.3f, 0.6f);
@@ -100,7 +100,7 @@ namespace CustomEvents.Example
         public (int, TileRelativeTo) TargetTile { get; set; } = (0, TileRelativeTo.ThisTile);
 
         [EventProperty]
-        [PropertyFilePicker]
+        [PropertyFileDialog]
         [PropertyGroup(Name = "Basics")]
         public string AudioFile { get; set; } = "";
 
@@ -125,13 +125,15 @@ namespace CustomEvents.Example
         [PropertyGroup(Name = "Advanced")]
         public string DevOnlyDebug { get; set; } = "Debug";
 
-        public override void OnApply()
+        /// <inheritdoc />
+        protected override void OnApply()
         {
             if (LogToConsole)
                 Debug.Log($"TestEvent Apply: {Message}");
         }
 
-        public override void OnFloor()
+        /// <inheritdoc />
+        protected override void OnFloor()
         {
             if (LogToConsole && Mode != TestMode.Basic)
                 Debug.Log($"TestEvent Floor: Mode={Mode}, Quality={Quality}, Power={AdvancedPower}");

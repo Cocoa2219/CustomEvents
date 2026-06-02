@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -13,6 +14,7 @@ using PropertyInfo = ADOFAI.PropertyInfo;
 
 namespace CustomEvents.Event;
 
+/// <summary>Stores and resolves localized strings for custom events.</summary>
 public static class LocalizationRegistry
 {
     private static readonly Dictionary<SystemLanguage, string> _languageToTag = new()
@@ -103,6 +105,12 @@ public static class LocalizationRegistry
         }
     }
 
+    /// <summary>Looks up a localized string for a specific assembly and culture.</summary>
+    /// <param name="assembly">The assembly that owns the localization data, or <see langword="null"/> for general entries.</param>
+    /// <param name="key">The localization key to resolve.</param>
+    /// <param name="culture">The culture to search with.</param>
+    /// <param name="localized">When this method returns, contains the localized string if one is found; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when a localized value is found; otherwise <see langword="false"/>.</returns>
     public static bool TryGetLocalizedString(Assembly assembly, string key, CultureInfo culture, out string localized)
     {
         localized = null;
@@ -134,12 +142,22 @@ public static class LocalizationRegistry
         return false;
     }
 
+    /// <summary>Gets a localized string for an assembly and language.</summary>
+    /// <param name="assembly">The assembly that owns the localization data.</param>
+    /// <param name="key">The localization key to resolve.</param>
+    /// <param name="language">The language to resolve against.</param>
+    /// <returns>The localized string, or <see langword="null"/> when no match exists.</returns>
     public static string GetLocalizedString(Assembly assembly, string key, SystemLanguage language)
     {
         var culture = CultureFromSystemLanguage(language);
         return TryGetLocalizedString(assembly, key, culture, out var res) ? res : null;
     }
 
+    /// <summary>Gets a localized string for an assembly name and language.</summary>
+    /// <param name="assemblyName">The assembly name to search for.</param>
+    /// <param name="key">The localization key to resolve.</param>
+    /// <param name="language">The language to resolve against.</param>
+    /// <returns>The localized string, or <see langword="null"/> when no match exists.</returns>
     public static string GetLocalizedString(string assemblyName, string key, SystemLanguage language)
     {
         var culture = CultureFromSystemLanguage(language);
@@ -148,12 +166,18 @@ public static class LocalizationRegistry
             .Select(kv => TryGetLocalizedString(kv.Key, key, culture, out var res) ? res : null).FirstOrDefault();
     }
 
+    /// <summary>Gets a general localized string.</summary>
+    /// <param name="key">The localization key to resolve.</param>
+    /// <param name="language">The language to resolve against.</param>
+    /// <returns>The localized string, or <see langword="null"/> when no match exists.</returns>
     public static string GetGeneralLocalizedString(string key, SystemLanguage language)
     {
         var culture = CultureFromSystemLanguage(language);
         return TryGetLocalizedString(null, key, culture, out var res) ? res : null;
     }
 
+    /// <summary>Registers localization data from a JSON payload.</summary>
+    /// <param name="json">The JSON string that contains localization entries.</param>
     public static void RegisterJson(string json)
     {
         var assembly = Assembly.GetCallingAssembly();
@@ -183,6 +207,9 @@ public static class LocalizationRegistry
             }
     }
 
+    /// <summary>Registers localization data for a single locale.</summary>
+    /// <param name="locale">The locale name or language tag.</param>
+    /// <param name="json">The JSON string that contains localization entries.</param>
     public static void RegisterPerLanguageJson(string locale, string json)
     {
         var assembly = Assembly.GetCallingAssembly();
@@ -357,9 +384,13 @@ public static class LocalizationRegistry
     }
 }
 
+/// <summary>Localizes category tab labels.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(CategoryTab))]
 public class CategoryTabLocalizationPatch
 {
+    /// <summary>Replaces the hover label with a localized category name.</summary>
+    /// <param name="__instance">The category tab instance.</param>
     [HarmonyPatch(nameof(CategoryTab.OnPointerEnter))]
     [HarmonyPostfix]
     public static void OnPointerEnterPostfix(CategoryTab __instance)
@@ -375,6 +406,9 @@ public class CategoryTabLocalizationPatch
                 Persistence.language) ?? __instance.levelEventCategory.ToSafeName();
     }
 
+    /// <summary>Replaces the selected label with a localized category name.</summary>
+    /// <param name="__instance">The category tab instance.</param>
+    /// <param name="selected">A value that indicates whether the tab is selected.</param>
     [HarmonyPatch(nameof(CategoryTab.SetSelected))]
     [HarmonyPostfix]
     public static void SetSelectedPostfix(CategoryTab __instance, bool selected)
@@ -392,9 +426,14 @@ public class CategoryTabLocalizationPatch
     }
 }
 
+/// <summary>Localizes inspector panel event titles.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(InspectorPanel), nameof(InspectorPanel.ShowPanel))]
 public class InspectorPanelShowPanelLocalizationPatch
 {
+    /// <summary>Replaces the inspector title with a localized custom event name.</summary>
+    /// <param name="__instance">The inspector panel instance.</param>
+    /// <param name="eventType">The selected event type.</param>
     public static void Postfix(InspectorPanel __instance, LevelEventType eventType)
     {
         if (eventType == LevelEventType.None) return;
@@ -420,9 +459,14 @@ public class InspectorPanelShowPanelLocalizationPatch
     }
 }
 
+/// <summary>Localizes event button labels.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(LevelEventButton), nameof(LevelEventButton.ShowAsSelected))]
 public class LevelEventButtonLocalizationPatch
 {
+    /// <summary>Replaces the picker label with a localized custom event name.</summary>
+    /// <param name="__instance">The event button instance.</param>
+    /// <param name="selected">A value that indicates whether the button is selected.</param>
     public static void Postfix(LevelEventButton __instance, bool selected)
     {
         if (__instance.type.IsVanillaEventType()) return;
@@ -456,9 +500,15 @@ public class LevelEventButtonLocalizationPatch
     }
 }
 
+/// <summary>Localizes property labels, placeholders, and help text.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(PropertiesPanel), nameof(PropertiesPanel.RenderControl))]
 public class PropertiesPanelRenderControlLocalizationPatch
 {
+    /// <summary>Updates property UI strings for custom events.</summary>
+    /// <param name="__instance">The properties panel instance.</param>
+    /// <param name="propertyKey">The property key being rendered.</param>
+    /// <param name="propertyInfo">The property metadata being rendered.</param>
     public static void Postfix(PropertiesPanel __instance, string propertyKey, PropertyInfo propertyInfo)
     {
         if (propertyInfo.levelEventInfo.type.IsVanillaEventType()) return;
@@ -475,9 +525,9 @@ public class PropertiesPanelRenderControlLocalizationPatch
                 if (CustomEventRegistry.CustomEventData.TryGetValue(propertyInfo.levelEventInfo.type,
                         out var eventData) && eventData != null &&
                     eventData.PropertiesByName.TryGetValue(propertyInfo.name, out var propData) && propData != null &&
-                    !string.IsNullOrEmpty(propData.Placeholder))
+                    !string.IsNullOrEmpty(propData.Data.Placeholder))
                     localizedPlaceholder =
-                        LocalizationRegistry.GetLocalizedString(ev.Assembly, propData.Placeholder,
+                        LocalizationRegistry.GetLocalizedString(ev.Assembly, propData.Data.Placeholder,
                             Persistence.language);
                 else
                     localizedPlaceholder = LocalizationRegistry.GetLocalizedString(ev.Assembly,
@@ -511,23 +561,34 @@ public class PropertiesPanelRenderControlLocalizationPatch
             var localizedHelp = LocalizationRegistry.GetLocalizedString(ev.Assembly, helpKey, Persistence.language);
             if (!string.IsNullOrEmpty(localizedHelp))
             {
-                var localizedButtonURL =
-                    LocalizationRegistry.GetLocalizedString(ev.Assembly, buttonURL, Persistence.language);
+                var btnURL = IsValidURL(buttonURL) ? buttonURL : LocalizationRegistry.GetLocalizedString(ev.Assembly, buttonURL, Persistence.language);
+                    // LocalizationRegistry.GetLocalizedString(ev.Assembly, buttonURL, Persistence.language);
                 var localizedButtonText =
                     LocalizationRegistry.GetLocalizedString(ev.Assembly, buttonTextKey, Persistence.language);
 
                 var helpButton = property.helpButton;
                 helpButton.transform.parent.gameObject.SetActive(true);
                 helpButton.onClick.AddListener(() => ADOBase.editor.ShowPropertyHelp(true, helpButton.transform,
-                    localizedHelp, localizedButtonURL, localizedButtonText));
+                    localizedHelp, btnURL, localizedButtonText));
             }
         }
     }
+    
+    private static bool IsValidURL(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var temp) &&
+               (temp.Scheme == Uri.UriSchemeHttp || temp.Scheme == Uri.UriSchemeHttps);
+    }
 }
 
+/// <summary>Localizes property labels in the editor.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(Property), nameof(Property.info), MethodType.Setter)]
 public class PropertyInfoSetterLocalizationPatch
 {
+    /// <summary>Replaces the default property label with a localized value.</summary>
+    /// <param name="__instance">The property control instance.</param>
+    /// <param name="value">The property metadata being applied.</param>
     public static void Postfix(Property __instance, PropertyInfo value)
     {
         if (value.levelEventInfo.type.IsVanillaEventType()) return;
@@ -544,11 +605,11 @@ public class PropertyInfoSetterLocalizationPatch
                     eventData != null && eventData.PropertiesByName.TryGetValue(value.name, out var propData) &&
                     propData != null)
                 {
-                    if (!string.IsNullOrEmpty(propData.LocalizationKey))
-                        localizedString = LocalizationRegistry.GetLocalizedString(assembly, propData.LocalizationKey,
+                    if (!string.IsNullOrEmpty(propData.Data.LocalizationKey))
+                        localizedString = LocalizationRegistry.GetLocalizedString(assembly, propData.Data.LocalizationKey,
                             Persistence.language);
-                    else if (!string.IsNullOrEmpty(propData.CustomLabel))
-                        localizedString = propData.CustomLabel;
+                    else if (!string.IsNullOrEmpty(propData.Data.CustomLabel))
+                        localizedString = propData.Data.CustomLabel;
                     else
                         localizedString = LocalizationRegistry.GetLocalizedString(assembly,
                             $"{customEvent.Name}.{value.name}.name",
@@ -570,9 +631,13 @@ public class PropertyInfoSetterLocalizationPatch
     }
 }
 
+/// <summary>Localizes note property text.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(PropertyControl_Note), nameof(PropertyControl_Note.Setup))]
 public class PropertyControlNoteLocalizationPatch
 {
+    /// <summary>Replaces the note text with a localized value when one exists.</summary>
+    /// <param name="__instance">The note control instance.</param>
     public static void Postfix(PropertyControl_Note __instance)
     {
         if (__instance.propertyInfo == null) return;
@@ -604,9 +669,13 @@ public class PropertyControlNoteLocalizationPatch
     }
 }
 
+/// <summary>Localizes property units.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch]
 public class PropertyControlUnitLocalizationPatch
 {
+    /// <summary>Replaces float-pair units with localized text.</summary>
+    /// <param name="__instance">The float-pair control instance.</param>
     [HarmonyPatch(typeof(PropertyControl_FloatPair), nameof(PropertyControl_FloatPair.Setup))]
     [HarmonyPostfix]
     public static void Postfix_FloatPair(PropertyControl_FloatPair __instance)
@@ -645,6 +714,8 @@ public class PropertyControlUnitLocalizationPatch
         }
     }
 
+    /// <summary>Replaces text control units with localized text.</summary>
+    /// <param name="__instance">The text control instance.</param>
     [HarmonyPatch(typeof(PropertyControl_Text), nameof(PropertyControl_Text.Setup))]
     [HarmonyPostfix]
     public static void Postfix_Text(PropertyControl_Text __instance)
@@ -679,6 +750,8 @@ public class PropertyControlUnitLocalizationPatch
         }
     }
 
+    /// <summary>Replaces vector2 units with localized text.</summary>
+    /// <param name="__instance">The vector2 control instance.</param>
     [HarmonyPatch(typeof(PropertyControl_Vector2), nameof(PropertyControl_Vector2.Setup))]
     [HarmonyPostfix]
     public static void Postfix_Vector2(PropertyControl_Vector2 __instance)
@@ -717,6 +790,8 @@ public class PropertyControlUnitLocalizationPatch
         }
     }
 
+    /// <summary>Replaces vector2-range units with localized text.</summary>
+    /// <param name="__instance">The vector2-range control instance.</param>
     [HarmonyPatch(typeof(PropertyControl_Vector2Range), nameof(PropertyControl_Vector2Range.Setup))]
     [HarmonyPostfix]
     public static void Postfix_Vector2Range(PropertyControl_Vector2Range __instance)
@@ -768,9 +843,16 @@ public class PropertyControlUnitLocalizationPatch
     }
 }
 
+/// <summary>Localizes enum value display names.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [HarmonyPatch(typeof(RDString), "GetEnumValue", typeof(string), typeof(string))]
 public class RDStringGetEnumValueLocalizationPatch
 {
+    /// <summary>Supplies a localized enum value when the enum comes from a custom assembly.</summary>
+    /// <param name="type">The enum type descriptor.</param>
+    /// <param name="value">The enum value to resolve.</param>
+    /// <param name="__result">When this method returns, contains the localized value.</param>
+    /// <returns><see langword="false"/> when the prefix resolves the value; otherwise <see langword="true"/>.</returns>
     public static bool Prefix(string type, string value, ref string __result)
     {
         var split = type.Split(',');
