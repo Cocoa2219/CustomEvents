@@ -71,52 +71,85 @@ public class PropertyLabelAttribute : Attribute
 /// <summary>Maps the target integer member to an <see cref="IntProperty"/>.</summary>
 /// <remarks>This serves as the default engine fallback for integer types if no other specialized integer layout attribute is specified.</remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyIntAttribute(int min = int.MinValue, int max = int.MaxValue) : Attribute
+public class PropertyIntAttribute : Attribute
 {
     /// <summary>Gets or sets the minimum allowed value constraint passed to the <see cref="IntProperty"/>.</summary>
-    public int Min { get; set; } = min;
+    public int Min { get; set; }
 
     /// <summary>Gets or sets the maximum allowed value constraint passed to the <see cref="IntProperty"/>.</summary>
-    public int Max { get; set; } = max;
+    public int Max { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyIntAttribute"/> class.</summary>
+    /// <param name="min">The minimum allowed value constraint.</param>
+    /// <param name="max">The maximum allowed value constraint.</param>
+    public PropertyIntAttribute(int min = int.MinValue, int max = int.MaxValue)
+    {
+        Min = min;
+        Max = max;
+    }
 }
 
 /// <summary>Maps the target floating-point member to a <see cref="FloatProperty"/>.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyFloatAttribute(float min = float.MinValue, float max = float.MaxValue) : Attribute
+public class PropertyFloatAttribute : Attribute
 {
     /// <summary>Gets or sets the minimum boundary value passed to the <see cref="FloatProperty"/>.</summary>
-    public float Min { get; set; } = min;
+    public float Min { get; set; }
 
     /// <summary>Gets or sets the maximum boundary value passed to the <see cref="FloatProperty"/>.</summary>
-    public float Max { get; set; } = max;
+    public float Max { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyFloatAttribute"/> class.</summary>
+    /// <param name="min">The minimum boundary value.</param>
+    /// <param name="max">The maximum boundary value.</param>
+    public PropertyFloatAttribute(float min = float.MinValue, float max = float.MaxValue)
+    {
+        Min = min;
+        Max = max;
+    }
 }
 
 /// <summary>Maps the target string member to a <see cref="StringProperty"/>.</summary>
 /// <remarks>This serves as the default fallback layout configuration for string fields unless specialized modifiers are found.</remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyStringAttribute(
-    int minLength = int.MinValue,
-    int maxLength = int.MaxValue,
-    bool needsUnicode = true,
-    bool localizable = false) : Attribute
+public class PropertyStringAttribute : Attribute
 {
     /// <summary>Gets or sets the minimum string length configuration passed to the <see cref="StringProperty"/>.</summary>
-    public int MinLength { get; set; } = minLength;
+    public int MinLength { get; set; }
 
     /// <summary>Gets or sets the maximum string length configuration passed to the <see cref="StringProperty"/>.</summary>
-    public int MaxLength { get; set; } = maxLength;
+    public int MaxLength { get; set; }
 
     /// <summary>Gets or sets a value that indicates whether Unicode character sets are parsed by the <see cref="StringProperty"/>.</summary>
-    public bool NeedsUnicode { get; set; } = needsUnicode;
+    public bool NeedsUnicode { get; set; }
 
     /// <summary>Gets or sets a value that indicates whether the value uses localization mapping rules inside the <see cref="StringProperty"/>.</summary>
-    public bool Localizable { get; set; } = localizable;
+    public bool Localizable { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyStringAttribute"/> class.</summary>
+    /// <param name="minLength">The minimum string length configuration.</param>
+    /// <param name="maxLength">The maximum string length configuration.</param>
+    /// <param name="needsUnicode">Indicates whether Unicode characters are allowed.</param>
+    /// <param name="localizable">Indicates whether the value supports localization mapping tables.</param>
+    public PropertyStringAttribute(int minLength = int.MinValue, int maxLength = int.MaxValue, bool needsUnicode = true, bool localizable = false)
+    {
+        MinLength = minLength;
+        MaxLength = maxLength;
+        NeedsUnicode = needsUnicode;
+        Localizable = localizable;
+    }
 }
 
 /// <summary>Modifies a numeric property mapping to use a slider control visual element within its generated wrapper.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class PropertySliderAttribute : Attribute
 {
+    /// <summary>Gets or sets the minimum boundary bound on the editor slider tool.</summary>
+    public float Min { get; set; }
+
+    /// <summary>Gets or sets the maximum boundary bound on the editor slider tool.</summary>
+    public float Max { get; set; }
+
     /// <summary>Initializes a new instance of the <see cref="PropertySliderAttribute" /> class.</summary>
     /// <param name="min">The minimum slider boundary value.</param>
     /// <param name="max">The maximum slider boundary value.</param>
@@ -125,12 +158,6 @@ public class PropertySliderAttribute : Attribute
         Min = min;
         Max = max;
     }
-
-    /// <summary>Gets or sets the minimum boundary bound on the editor slider tool.</summary>
-    public float Min { get; set; }
-
-    /// <summary>Gets or sets the maximum boundary bound on the editor slider tool.</summary>
-    public float Max { get; set; }
 }
 
 /// <summary>Modifies a string property mapping to draw options from a manual selection list container.</summary>
@@ -156,40 +183,63 @@ public class PropertyDropdownAttribute : Attribute
 
 /// <summary>Maps the target <see cref="Color"/> member to a <see cref="ColorProperty"/>.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyColorAttribute(bool useAlpha = false) : Attribute
+public class PropertyColorAttribute : Attribute
 {
     /// <summary>Gets or sets a value passed to the <see cref="ColorProperty"/> indicating whether the alpha channel remains editable.</summary>
-    public bool UseAlpha { get; set; } = useAlpha;
+    public bool UseAlpha { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyColorAttribute"/> class.</summary>
+    /// <param name="useAlpha">Indicates whether the alpha opacity selection slider is active.</param>
+    public PropertyColorAttribute(bool useAlpha = false)
+    {
+        UseAlpha = useAlpha;
+    }
 }
 
 /// <summary>Maps the target string member to a <see cref="FileProperty"/> instead of a standard string layout wrapper.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyFileDialogAttribute(FileType type = FileType.Audio) : Attribute
+public class PropertyFileDialogAttribute : Attribute
 {
     /// <summary>Gets or sets the system file extension selector filter passed to the <see cref="FileProperty"/>.</summary>
-    public FileType Type { get; set; } = type;
+    public FileType Type { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyFileDialogAttribute"/> class.</summary>
+    /// <param name="type">The standard file category type filter rule.</param>
+    public PropertyFileDialogAttribute(FileType type = FileType.Audio)
+    {
+        Type = type;
+    }
 }
 
-/// <summary>Maps the target <see cref="ValueTuple{Single, Single}"/> member to a <see cref="FloatPairProperty"/>.</summary>
+/// <summary>Maps the target structural float tuple to a <see cref="FloatPairProperty"/>.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyFloatPairAttribute(
-    float min = int.MinValue,
-    float max = int.MaxValue,
-    float step = 0.1f,
-    bool isRange = true) : Attribute
+public class PropertyFloatPairAttribute : Attribute
 {
     /// <summary>Gets or sets the minimum limit value passed to the <see cref="FloatPairProperty"/>.</summary>
-    public float Min { get; set; } = min;
+    public float Min { get; set; }
 
     /// <summary>Gets or sets the maximum limit value passed to the <see cref="FloatPairProperty"/>.</summary>
-    public float Max { get; set; } = max;
+    public float Max { get; set; }
 
     /// <summary>Gets or sets the incremental steps scale values mapping configuration parameters.</summary>
     /// <remarks>Step is currently unused and has no effect on the editor UI, but it may be used for validation or UI behavior in the future.</remarks>
-    public float Step { get; set; } = step;
+    public float Step { get; set; }
 
     /// <summary>Gets or sets a value that indicates whether the pair represents a bounding range configuration passed to the <see cref="FloatPairProperty"/>.</summary>
-    public bool IsRange { get; set; } = isRange;
+    public bool IsRange { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyFloatPairAttribute"/> class.</summary>
+    /// <param name="min">The minimum boundary point constraint.</param>
+    /// <param name="max">The maximum boundary point constraint.</param>
+    /// <param name="step">The resolution step scale value increment.</param>
+    /// <param name="isRange">Indicates if values configure an upper and lower bounding range loop.</param>
+    public PropertyFloatPairAttribute(float min = int.MinValue, float max = int.MaxValue, float step = 0.1f, bool isRange = true)
+    {
+        Min = min;
+        Max = max;
+        Step = step;
+        IsRange = isRange;
+    }
 }
 
 /// <summary>Maps the target string member to a read-only <see cref="NoteProperty"/> instead of an input field wrapper.</summary>
@@ -213,56 +263,94 @@ public class PropertyLongInputFieldAttribute : Attribute
 
 /// <summary>Maps the target custom enum member type structure into a dynamically calculated <see cref="EnumProperty{T}"/>.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyEnumAttribute(params string[] exclusions) : Attribute
+public class PropertyEnumAttribute : Attribute
 {
     /// <summary>Gets or sets the list of enum item text string identifiers excluded from compiling into the <see cref="EnumProperty{T}"/> elements list.</summary>
-    public string[] Exclusions { get; set; } = exclusions;
+    public string[] Exclusions { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyEnumAttribute"/> class.</summary>
+    /// <param name="exclusions">The string identifiers representing enum entries to strip from the user configuration selection box.</param>
+    public PropertyEnumAttribute(params string[] exclusions)
+    {
+        Exclusions = exclusions;
+    }
 }
 
-/// <summary>Maps the target <see cref="ValueTuple{Int32, TileRelativeTo}"/> member type structure into a <see cref="TileProperty"/>.</summary>
+/// <summary>Maps the target structural relative positional tuple member to a <see cref="TileProperty"/>.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyTileAttribute(int min = int.MinValue, int max = int.MaxValue) : Attribute
+public class PropertyTileAttribute : Attribute
 {
     /// <summary>Gets or sets the minimum bound index value passed to the <see cref="TileProperty"/>.</summary>
-    public int Min { get; set; } = min;
+    public int Min { get; set; }
 
     /// <summary>Gets or sets the maximum bound index value passed to the <see cref="TileProperty"/>.</summary>
-    public int Max { get; set; } = max;
+    public int Max { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyTileAttribute"/> class.</summary>
+    /// <param name="min">The minimum tile step distance offset bound.</param>
+    /// <param name="max">The maximum tile step distance offset bound.</param>
+    public PropertyTileAttribute(int min = int.MinValue, int max = int.MaxValue)
+    {
+        Min = min;
+        Max = max;
+    }
 }
 
 /// <summary>Maps the target <see cref="Vector2"/> member structure into a <see cref="Vector2Property"/>.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyVector2Attribute(
-    float minX = float.NegativeInfinity,
-    float maxX = float.PositiveInfinity,
-    float minY = float.NegativeInfinity,
-    float maxY = float.PositiveInfinity,
-    bool allowEmpty = false) : Attribute
+public class PropertyVector2Attribute : Attribute
 {
-    /// <summary>Gets or sets the lowest positional constraints vectors mapped onto the <see cref="Vector2Property"/> properties boundaries.</summary>
-    public Vector2 Min { get; set; } = new(minX, minY);
+    /// <summary>Gets the lowest positional coordinate constraint bound assigned to the horizontal and vertical axes fields.</summary>
+    public Vector2 Min { get; }
 
-    /// <summary>Gets or sets the highest positional constraints vectors mapped onto the <see cref="Vector2Property"/> properties boundaries.</summary>
-    public Vector2 Max { get; set; } = new(maxX, maxY);
+    /// <summary>Gets the highest positional coordinate constraint bound assigned to the horizontal and vertical axes fields.</summary>
+    public Vector2 Max { get; }
 
     /// <summary>Gets or sets a value that indicates whether the parsed <see cref="Vector2Property"/> allows processing unassigned blank fields variables fields blocks entries.</summary>
-    public bool AllowEmpty { get; set; } = allowEmpty;
+    public bool AllowEmpty { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyVector2Attribute"/> class.</summary>
+    /// <param name="minX">The low bound limit clamping the X axis value component field.</param>
+    /// <param name="maxX">The high bound limit clamping the X axis value component field.</param>
+    /// <param name="minY">The low bound limit clamping the Y axis value component field.</param>
+    /// <param name="maxY">The high bound limit clamping the Y axis value component field.</param>
+    /// <param name="allowEmpty">Indicates if vector sub-fields can safely pass empty configurations strings parameters.</param>
+    public PropertyVector2Attribute(float minX = float.NegativeInfinity, float maxX = float.PositiveInfinity, float minY = float.NegativeInfinity, float maxY = float.PositiveInfinity, bool allowEmpty = false)
+    {
+        Min = new Vector2(minX, minY);
+        Max = new Vector2(maxX, maxY);
+        AllowEmpty = allowEmpty;
+    }
 }
 
-/// <summary>Maps the target <see cref="ValueTuple{Vector2, Vector2}"/> member structure into a <see cref="Vector2RangeProperty"/>.</summary>
+/// <summary>Maps the target structural vector pair tuple to a <see cref="Vector2RangeProperty"/>.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyVector2RangeAttribute(bool isRange = true) : Attribute
+public class PropertyVector2RangeAttribute : Attribute
 {
     /// <summary>Gets or sets a value passed to the <see cref="Vector2RangeProperty"/> indicating whether the layout evaluates the vectors as a scaling boundary range map.</summary>
-    public bool IsRange { get; set; } = isRange;
+    public bool IsRange { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyVector2RangeAttribute"/> class.</summary>
+    /// <param name="isRange">Indicates if fields display coordinate values with a hyphen between them to represent a range configuration instead of separate X and Y values.</param>
+    public PropertyVector2RangeAttribute(bool isRange = true)
+    {
+        IsRange = isRange;
+    }
 }
 
 /// <summary>Maps the target boolean member into a toggle element widget control module inside the <see cref="BoolProperty"/> tracker.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class PropertyToggleableAttribute(bool isOnByDefault = false) : Attribute
+public class PropertyToggleableAttribute : Attribute
 {
     /// <summary>Gets or sets a value defining whether the mapped <see cref="BoolProperty"/> starts marked active inside inspector layout windows configurations.</summary>
-    public bool IsOnByDefault { get; set; } = isOnByDefault;
+    public bool IsOnByDefault { get; set; }
+
+    /// <summary>Initializes a new instance of the <see cref="PropertyToggleableAttribute"/> class.</summary>
+    /// <param name="isOnByDefault">The default fall-through visual choice configuration parameters value.</param>
+    public PropertyToggleableAttribute(bool isOnByDefault = false)
+    {
+        IsOnByDefault = isOnByDefault;
+    }
 }
 
 /// <summary>Configures visibility filter logic rules showing the targeting <see cref="CustomProperty"/> if dependency conditions match.</summary>

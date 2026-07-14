@@ -647,7 +647,7 @@ public class TileProperty : CustomProperty<(int, TileRelativeTo)>
     /// <param name="data">The configuration metadata container.</param>
     /// <param name="min">The minimum relative space layout values bounds index.</param>
     /// <param name="max">The maximum relative space layout values bounds index.</param>
-    /// <param name="default">The default layout index assignment calculations mapping context structural layout pair definition.</param>
+    /// <param name="default">The default relative tile reference point and orientation fallback tuple.</param>
     public TileProperty(string name, PropertyData data, int min = int.MinValue, int max = int.MaxValue,
         (int, TileRelativeTo)? @default = null)
         : base(name, data, @default ?? (0, TileRelativeTo.ThisTile))
@@ -750,7 +750,7 @@ public class Vector2RangeProperty : CustomProperty<(Vector2, Vector2)>
     /// <summary>Initializes a new instance of the <see cref="Vector2RangeProperty"/> class.</summary>
     /// <param name="name">The property name.</param>
     /// <param name="data">The configuration metadata container.</param>
-    /// <param name="isRange">A value indicating if vectors construct bounded range calculations thresholds configurations limits.</param>
+    /// <param name="isRange">A value indicating if the values represent a range.</param>
     /// <param name="default">The default double positional vector configuration boundaries.</param>
     public Vector2RangeProperty(string name, PropertyData data, bool isRange = true, (Vector2, Vector2)? @default = null) : base(name, data,
         @default ?? (new Vector2(0f, 0f), new Vector2(0f, 0f)))

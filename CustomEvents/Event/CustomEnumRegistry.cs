@@ -31,12 +31,12 @@ public static class CustomCategoryRegistry
         RegisterCustomCategory("Uncategorized");
     }
     
-    /// <summary>Gets the starting lower boundary point parameter index used for customized inventory tab views definitions filters.</summary>
+    /// <summary>Gets the starting lower boundary point parameter index used for customized category types.</summary>
     public const int Uncategorized = 100000;
 
     private static readonly Dictionary<string, LevelEventCategory> _customCategories = new();
 
-    /// <summary>Gets the collection containing actively registered layout categories indexed by their unique descriptive header labels.</summary>
+    /// <summary>Gets the collection containing actively registered categories indexed by their unique descriptive header labels.</summary>
     public static IReadOnlyDictionary<string, LevelEventCategory> CustomCategories => _customCategories;
 
     private static int _nextValue = Uncategorized;
@@ -77,7 +77,7 @@ public static class CustomCategoryRegistry
     
     /// <summary>Retrieves an existing category identifier or initializes a new one if the text key is unmapped.</summary>
     /// <param name="name">The target structural tag name undergoing identity lookups or registration instantiation pipelines.</param>
-    /// <returns>The verified or newly registered layout category identification cast profile.</returns>
+    /// <returns>The verified or newly registered category identification cast profile.</returns>
     public static LevelEventCategory GetOrAddCustomCategoryValue(string name)
     {
         return _customCategories.TryGetValue(name, out var value) ? value : RegisterCustomCategory(name);

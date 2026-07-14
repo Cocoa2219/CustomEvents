@@ -17,7 +17,7 @@ using PropertyInfo = ADOFAI.PropertyInfo;
 
 namespace CustomEvents.Event;
 
-/// <summary>Registers, maps, and caches runtime metadata declarations for custom events and custom layout categories.</summary>
+/// <summary>Registers, maps, and caches runtime metadata declarations for custom events and custom categories.</summary>
 public static class CustomEventRegistry
 {
     private static Harmony _harmony;
@@ -30,15 +30,15 @@ public static class CustomEventRegistry
     public static IReadOnlyDictionary<LevelEventType, CustomEventData> CustomEventData => _customEventData;
     private static readonly Dictionary<LevelEventType, CustomEventData> _customEventData = new();
 
-    /// <summary>Gets the structural lookup index that translates fully qualified custom string names directly into explicit <see cref="LevelEventType"/> values.</summary>
+    /// <summary>Gets the lookup index that translates fully qualified custom string names directly into explicit <see cref="LevelEventType"/> values.</summary>
     public static IReadOnlyDictionary<string, LevelEventType> NameToIdCache => _nameToIdCache;
     private static readonly Dictionary<string, LevelEventType> _nameToIdCache = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Gets the configured layout metadata parameters indexed by their dynamically allocated <see cref="LevelEventCategory"/> key.</summary>
+    /// <summary>Gets the configured metadata parameters indexed by their dynamically allocated <see cref="LevelEventCategory"/> key.</summary>
     public static IReadOnlyDictionary<LevelEventCategory, (Sprite icon, string localizationKey)> CategoryCache => _categoryCache;
     private static readonly Dictionary<LevelEventCategory, (Sprite, string)> _categoryCache = new();
 
-    /// <summary>Gets the registered section headers textures used to customize inspector panels, indexed by composite event types and group identifiers.</summary>
+    /// <summary>Gets the registered group icons used to customize inspector panels, indexed by composite keys of <see cref="LevelEventType"/> and group name strings.</summary>
     public static IReadOnlyDictionary<(LevelEventType info, string group), Sprite> GroupIconCache => _groupIconCache;
     private static readonly Dictionary<(LevelEventType info, string group), Sprite> _groupIconCache = new();
     
@@ -50,8 +50,8 @@ public static class CustomEventRegistry
     internal static Dictionary<LevelEventType, string> KeysToAdd { get; } = new();
     internal static Dictionary<Assembly, Dictionary<PropertyInfo, string>> DefaultValueToAdd { get; } = new();
     
-    /// <summary>Registers a concrete <see cref="CustomEvent"/> instance into the engine state pipelines and initializes runtime tracking hooks.</summary>
-    /// <param name="ev">The explicit custom event structure undergoing system registration parameters assignment.</param>
+    /// <summary>Registers a <see cref="CustomEvent"/> instance into the engine state pipelines and initializes runtime tracking hooks.</summary>
+    /// <param name="ev">The custom event instance to register and map across the engine systems.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="ev"/> evaluates as null.</exception>
     public static void RegisterCustomEvent(CustomEvent ev)
     {
@@ -177,9 +177,9 @@ public static class CustomEventRegistry
         _customEvents[id] = ev;
     }
 
-    /// <summary>Loops through an ordered sequence of <see cref="CustomEvent"/> items to configure their engine metadata profiles sequentially.</summary>
+    /// <summary>Loops through an ordered sequence of <see cref="CustomEvent"/> items to register them into the system in batch.</summary>
     /// <param name="events">The incoming collection containing target custom events models.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="events"/> maps out as null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="events"/> evaluates as null.</exception>
     public static void RegisterCustomEvents(IEnumerable<CustomEvent> events)
     {
         if (events == null) throw new ArgumentNullException(nameof(events));
@@ -196,10 +196,10 @@ public static class CustomEventRegistry
         RegisterCustomEvents(allEvents);
     }
 
-    /// <summary>Registers a localized layout section descriptor inside the system category registry tracking structures.</summary>
+    /// <summary>Registers a localized category into the system and links it to the provided visual icon and localization key for editor display.</summary>
     /// <param name="categoryName">The tracking key string assigned to represent the unique grouping identifier.</param>
-    /// <param name="icon">The asset tracking texture used to illustrate tab views inside custom engine navigation containers.</param>
-    /// <param name="localizationKey">The target dictionary identifier used to look up translated section label layouts text values strings variables.</param>
+    /// <param name="icon">The asset tracking texture used to illustrate tab views inside the editor interface.</param>
+    /// <param name="localizationKey">The target localization key used to resolve the display string for this category header.</param>
     public static void RegisterCategory(string categoryName, Sprite icon = null, string localizationKey = null)
     {
         if (_harmony == null)
@@ -335,7 +335,7 @@ public class InspectorPanelInitPatch
         foreach (var instruction in newInstructions) yield return instruction;
     }
 
-    /// <summary>Injects registered visual icon segments into generated custom subsection tab buttons elements layout grids containers.</summary>
+    /// <summary>Injects registered visual icon segments into generated custom event inspector panels.</summary>
     /// <param name="__instance">The active instance reference of the targeted initializing UI <see cref="InspectorPanel"/> controller.</param>
     public static void Postfix(InspectorPanel __instance)
     {
