@@ -20,8 +20,6 @@ namespace CustomEvents.Event;
 /// <summary>Registers, maps, and caches runtime metadata declarations for custom events and custom categories.</summary>
 public static class CustomEventRegistry
 {
-    private static Harmony _harmony;
-
     /// <summary>Gets the registered custom event definitions indexed by their calculated runtime <see cref="LevelEventType"/>.</summary>
     public static IReadOnlyDictionary<LevelEventType, CustomEvent> CustomEvents => _customEvents;
     private static readonly Dictionary<LevelEventType, CustomEvent> _customEvents = new();
@@ -55,28 +53,8 @@ public static class CustomEventRegistry
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="ev"/> evaluates as null.</exception>
     public static void RegisterCustomEvent(CustomEvent ev)
     {
-        if (_harmony == null)
-        {
-            _harmony = new Harmony("com.github.cocoa2219.customevents." + DateTime.Now.Ticks);
-            _harmony.PatchAll();
-            
-            PlayerPrefsJson.nonSyncedKeys =
-            [
-                "globalVolume",
-                "musicVolume",
-                "hitsoundVolume",
-                "sfxVolume",
-                "interfaceVolume",
-                "language",
-                "offset",
-                "offset_v",
-                "acceptedAgreement",
-                "visualQuality",
-                "visualEffects",
-                "targetFramerate"
-            ];
-        }
-        
+        HarmonyPatchManager.TryPatch();
+
         if (ev == null) throw new ArgumentNullException(nameof(ev));
 
         var evData = new CustomEventData(ev);
@@ -202,27 +180,7 @@ public static class CustomEventRegistry
     /// <param name="localizationKey">The target localization key used to resolve the display string for this category header.</param>
     public static void RegisterCategory(string categoryName, Sprite icon = null, string localizationKey = null)
     {
-        if (_harmony == null)
-        {
-            _harmony = new Harmony("com.github.cocoa2219.customevents." + DateTime.Now.Ticks);
-            _harmony.PatchAll();
-            
-            PlayerPrefsJson.nonSyncedKeys =
-            [
-                "globalVolume",
-                "musicVolume",
-                "hitsoundVolume",
-                "sfxVolume",
-                "interfaceVolume",
-                "language",
-                "offset",
-                "offset_v",
-                "acceptedAgreement",
-                "visualQuality",
-                "visualEffects",
-                "targetFramerate"
-            ];
-        }
+        HarmonyPatchManager.TryPatch();
 
         var categoryId = CustomCategoryRegistry.GetOrAddCustomCategoryValue(categoryName);
 

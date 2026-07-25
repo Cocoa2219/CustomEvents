@@ -94,6 +94,8 @@
         <Compile Include="Event\CustomEnumRegistry.cs" />
         <Compile Include="Event\CustomEvent.cs" />
         <Compile Include="Event\CustomEventData.cs" />
+        <Compile Include="Event\CustomSettingsRegistry.cs" />
+        <Compile Include="Event\HarmonyPatchManager.cs" />
         <Compile Include="Event\LocalizationRegistry.cs" />
         <Compile Include="Event\CustomEventRegistry.cs" />
         <Compile Include="Event\CustomEventRunner.cs" />

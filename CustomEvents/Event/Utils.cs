@@ -20,6 +20,11 @@ namespace CustomEvents.Event
                 return customEvent.FullName;
             }
 
+            if (CustomSettingsRegistry.SettingsData.TryGetValue(eventType, out var customSetting) && customSetting != null)
+            {
+                return customSetting.Id;
+            }
+
             return eventType.ToString();
         }
 
@@ -34,6 +39,11 @@ namespace CustomEvents.Event
             if (CustomEventRegistry.NameToIdCache.TryGetValue(name, out var customEventId))
             {
                 return customEventId;
+            }
+
+            if (CustomSettingsRegistry.TryGetCustomSetting(name, out var customSetting) && customSetting != null)
+            {
+                return customSetting.Type;
             }
 
             return (LevelEventType)defaultValue;
@@ -64,7 +74,8 @@ namespace CustomEvents.Event
         /// <summary>Determines whether <paramref name="eventType"/> comes from <see cref="CustomEventRegistry"/>.</summary>
         public static bool IsExtendedEventType(this LevelEventType eventType)
         {
-            return CustomEventRegistry.CustomEvents.ContainsKey(eventType);
+            return CustomEventRegistry.CustomEvents.ContainsKey(eventType) ||
+                   CustomSettingsRegistry.SettingsData.ContainsKey(eventType);
         }
 
         /// <summary>Determines whether <paramref name="eventType"/> is a built-in <see cref="LevelEventType"/> value.</summary>
